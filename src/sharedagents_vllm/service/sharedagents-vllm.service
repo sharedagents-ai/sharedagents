@@ -1,0 +1,25 @@
+[Unit]
+Description=sharedagents local vLLM router (optional; does not replace vllm-router.service until cutover)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Create this account (or override User=/Group=) on the install host.
+User=sharedagents
+Group=sharedagents
+ExecStart=/usr/bin/env sharedagents-vllm --config /var/lib/sharedagents/vllm-router.yaml
+Environment=SHAREDAGENTS_VLLM_LOG_LEVEL=info
+# Optional OpenRouter / cloud keys. Leading '-' = missing file is OK.
+EnvironmentFile=-/etc/sharedagents/secrets.env
+Restart=always
+RestartSec=3
+StartLimitIntervalSec=120
+StartLimitBurst=20
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sharedagents-vllm
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>{{ site_title }} · Agent Builder</title>
+<meta name="sharedagents-base" content="{{ base }}">
+<link rel="stylesheet" href="{{ base }}/static/style.css?v={{ asset_rev('style.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/menu.css?v={{ asset_rev('menu.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/agents.css?v={{ asset_rev('agents.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/agent_builder.css?v={{ asset_rev('agent_builder.css') }}">
+{% include "_ui_zoom.html" %}
+</head>
+<body class="monitor-body">
+{% set active = 'builder' %}
+{% include "_menu.html" %}
+{% from "_menu.html" import menu_button %}
+<div id="builder-app">
+  <header class="mon-header builder-header">
+    {{ menu_button() }}
+    <a class="mon-logo" href="{{ base }}/" title="Back to chat">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+        <path d="M2 17l10 5 10-5"/>
+        <path d="M2 12l10 5 10-5"/>
+      </svg>
+      <span>{{ site_title }}</span>
+    </a>
+    <div class="mon-title builder-title">
+      <span class="builder-title-divider" aria-hidden="true"></span>
+      <div>
+        <h1>Agent Builder</h1>
+        <p>Prompt, capabilities, and runtime policy</p>
+      </div>
+    </div>
+    <div class="mon-header-right">
+      <label class="builder-agent-picker" title="Agent to inspect">
+        <span class="builder-picker-label">Editing</span>
+        <select id="builder-agent-select" class="builder-select" aria-label="Agent">
+          <option value="">loading…</option>
+        </select>
+      </label>
+      <span id="builder-updated" class="mon-updated" title="Last update"></span>
+    </div>
+  </header>
+
+  <div id="builder-restart-banner" class="builder-banner" hidden>
+    <span class="builder-banner-icon" aria-hidden="true">!</span>
+    <div><strong>Restart required</strong><br><span>These fields activate after the gateway restarts: <span id="builder-restart-fields"></span></span></div>
+    <button type="button" id="builder-banner-dismiss" class="builder-btn builder-btn-ghost">Dismiss</button>
+  </div>
+
+  <main id="builder-main" class="builder-main" aria-label="Agent Builder workspace">
+    <div id="builder-empty" class="builder-empty">
+      <span class="builder-spinner" aria-hidden="true"></span>
+      Loading agent definitions…
+    </div>
+
+    <section id="builder-overview" class="builder-overview" hidden aria-label="Selected agent summary">
+      <div class="builder-identity">
+        <div id="builder-agent-avatar" class="builder-avatar" aria-hidden="true">A</div>
+        <div class="builder-identity-copy">
+          <span class="builder-eyebrow">Selected agent</span>
+          <div class="builder-name-row">
+            <h2 id="builder-agent-name">—</h2>
+            <span id="builder-agent-profile" class="builder-chip"></span>
+            <span id="builder-agent-engine" class="builder-chip builder-chip-muted"></span>
+          </div>
+          <div class="builder-desc-wrap">
+            <textarea id="builder-agent-description-input" class="builder-desc-input" rows="2" placeholder="Agent description…" aria-label="Agent description" title="Click to edit agent description"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="builder-snapshot" aria-label="Effective agent snapshot">
+        <div class="snapshot-item snapshot-wide">
+          <span class="snapshot-label">Model</span>
+          <strong id="summary-model">—</strong>
+        </div>
+        <div class="snapshot-item">
+          <span class="snapshot-label">Mode</span>
+          <strong id="summary-mode">—</strong>
+        </div>
+        <div class="snapshot-item">
+          <span class="snapshot-label">Prompt</span>
+          <strong id="summary-prompt">—</strong>
+        </div>
+        <div class="snapshot-item">
+          <span class="snapshot-label">Tools</span>
+          <strong id="summary-tools">—</strong>
+        </div>
+        <div class="snapshot-item">
+          <span class="snapshot-label">MCP</span>
+          <strong id="summary-mcp">—</strong>
+        </div>
+        <div class="snapshot-item">
+          <span class="snapshot-label">Skills</span>
+          <strong id="summary-skills">—</strong>
+        </div>
+      </div>
+    </section>
+
+    <nav id="builder-tabs" class="builder-tabs" aria-label="Agent configuration areas" hidden>
+      <button type="button" class="builder-tab is-active" data-builder-tab="prompt" aria-selected="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/></svg>
+        <span><strong>System prompt</strong><small>Understand what the model receives</small></span>
+      </button>
+      <button type="button" class="builder-tab" data-builder-tab="capabilities" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8"/><circle cx="12" cy="12" r="4"/></svg>
+        <span><strong>Capabilities</strong><small>Tools, MCP servers, and skills</small></span>
+      </button>
+      <button type="button" class="builder-tab" data-builder-tab="runtime" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M6 14v6"/></svg>
+        <span><strong>Runtime</strong><small>Model, permissions, and delegation</small></span>
+      </button>
+    </nav>
+
+    <form id="perms-form" class="builder-form" autocomplete="off">
+      <section id="card-system-prompt" class="builder-panel" data-panel="prompt" hidden>
+        <div class="panel-heading">
+          <div>
+            <span class="builder-eyebrow">Runtime mirror</span>
+            <h2>System prompt composition</h2>
+            <p>Every block is shown in the order sharedagents sends it. Source labels tell you who owns it and where it can be changed.</p>
+          </div>
+          <span id="prompt-exact-badge" class="status-badge status-ok">Exact match</span>
+        </div>
+
+        <div class="prompt-metrics" aria-label="Prompt metrics">
+          <div><strong id="prompt-char-count">0</strong><span>characters</span></div>
+          <div><strong id="prompt-token-estimate">≈ 0</strong><span>estimated tokens</span></div>
+          <div><strong id="prompt-section-count">0</strong><span>active sections</span></div>
+          <div><strong id="prompt-operator-count">0</strong><span>operator-owned</span></div>
+        </div>
+
+        <div class="prompt-workspace">
+          <div class="prompt-composition">
+            <div class="prompt-toolbar">
+              <label class="builder-search-wrap" for="prompt-filter">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                <input type="search" id="prompt-filter" class="builder-search" placeholder="Search prompt sections" autocomplete="off">
+              </label>
+              <label class="sp-hc-toggle" title="Runtime sections come from canonical sharedagents prompt builders.">
+                <input type="checkbox" id="sp-hc-toggle">
+                <span>Show runtime sections</span>
+              </label>
+              <button type="button" id="prompt-expand-all" class="builder-btn builder-btn-ghost">Expand all</button>
+            </div>
+            <div id="sp-hc-note" class="sp-hc-note" hidden></div>
+            <div id="sp-sections" class="sp-sections" aria-live="polite"></div>
+            <div id="sp-degraded" class="builder-note" hidden>
+              <strong>Source map unavailable.</strong> The full prompt is still shown exactly as the agent receives it, but this build could not safely attribute individual sections.
+            </div>
+          </div>
+
+          <aside class="prompt-guide" aria-label="How the system prompt is assembled">
+            <div class="guide-heading">
+              <span class="guide-icon">?</span>
+              <div><h3>How to read this</h3><p>The prompt is assembled top to bottom.</p></div>
+            </div>
+            <ol class="prompt-pipeline">
+              <li class="pipeline-runtime"><span>1</span><div><strong>Runtime policy</strong><small>Canonical guardrails and behavior. Toggle individual blocks to include or omit them.</small></div></li>
+              <li class="pipeline-operator"><span>2</span><div><strong>Agent instructions</strong><small>The selected agent’s <code>AGENTS.md</code>. This is the primary operator-owned prompt.</small></div></li>
+              <li class="pipeline-config"><span>3</span><div><strong>Configured system text</strong><small>Additional text from the agent configuration, when present.</small></div></li>
+              <li class="pipeline-dynamic"><span>4</span><div><strong>Dynamic context</strong><small>Workspace and memory below the cache boundary. It can change between sessions.</small></div></li>
+            </ol>
+            <div class="cache-note">
+              <span class="cache-line" aria-hidden="true"></span>
+              <div><strong>Cache boundary</strong><p>Stable instructions above this point can be reused by model providers; dynamic context remains fresh.</p></div>
+            </div>
+            <div class="guide-rule"><strong>Source of truth</strong><p>This view is composed by the same backend builders used at runtime and checked byte-for-byte before it is labeled “Exact match.”</p></div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="card-permissions" class="builder-panel" data-panel="capabilities" hidden>
+        <div class="panel-heading">
+          <div>
+            <span class="builder-eyebrow">Capability policy</span>
+            <h2>Tools, MCP servers, and skills</h2>
+            <p>Choose the catalog entries this agent may use. The effective result on the right is always resolved by the backend.</p>
+          </div>
+          <span class="status-badge status-info">Backend resolved</span>
+        </div>
+
+        <div class="policy-flow" aria-label="Capability resolution flow">
+          <span><b>1</b> Available catalog</span><i>→</i><span><b>2</b> Allow + deny rules</span><i>→</i><span><b>3</b> Effective runtime access</span>
+        </div>
+
+        <div class="capability-layout">
+          <div class="capability-config">
+            <article class="capability-card">
+              <header class="capability-head">
+                <div class="capability-icon tool-icon" aria-hidden="true">⌁</div>
+                <div><h3>Tools & MCP</h3><p>Callable functions exposed to the model.</p></div>
+                <span id="tool-catalog-count" class="perms-count"></span>
+              </header>
+              <div class="policy-switch" id="tool-policy" role="radiogroup" aria-label="Tool allowlist policy">
+                <button type="button" data-policy="all" role="radio" aria-checked="true"><strong>All available</strong><small>Leave the allowlist open</small></button>
+                <button type="button" data-policy="custom" role="radio" aria-checked="false"><strong>Custom allowlist</strong><small>Manage explicit entries below</small></button>
+              </div>
+              <label class="strict-row">
+                <input type="checkbox" id="perms-tools-strict" name="tools_allowlist_strict">
+                <span><strong>Strict allowlist</strong><small>Prevent profiles and implicit MCP discovery from widening this selection.</small></span>
+              </label>
+              <label class="builder-search-wrap catalog-search" for="tool-catalog-filter">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                <input type="search" id="tool-catalog-filter" class="builder-search" placeholder="Find a tool or MCP function" autocomplete="off">
+              </label>
+              <div id="tool-catalog" class="catalog-groups"></div>
+              <details class="advanced-rules">
+                <summary>Advanced tool rules <span>Wildcards and explicit denies</span></summary>
+                <div class="advanced-grid">
+                  <label class="perms-field">
+                    <span class="perms-label">Raw allowlist <em class="perms-hint">one identifier per line; empty means unrestricted</em></span>
+                    <textarea id="perms-tools" name="tools_allowlist" rows="6" spellcheck="false" placeholder="bash&#10;mcp__github__*&#10;…"></textarea>
+                  </label>
+                  <label class="perms-field">
+                    <span class="perms-label">Explicitly disabled <em class="perms-hint">subtracted after allow rules</em></span>
+                    <textarea id="perms-disabled" name="disabled_tools" rows="6" spellcheck="false" placeholder="dangerous_tool&#10;…"></textarea>
+                  </label>
+                </div>
+              </details>
+            </article>
+
+            <article class="capability-card">
+              <header class="capability-head">
+                <div class="capability-icon skill-icon" aria-hidden="true">◇</div>
+                <div><h3>Skills</h3><p>Packaged workflows and operational knowledge.</p></div>
+                <span id="skill-catalog-count" class="perms-count"></span>
+              </header>
+              <div class="policy-switch" id="skill-policy" role="radiogroup" aria-label="Skill allowlist policy">
+                <button type="button" data-policy="all" role="radio" aria-checked="true"><strong>All discovered</strong><small>Make every installed skill available</small></button>
+                <button type="button" data-policy="custom" role="radio" aria-checked="false"><strong>Custom allowlist</strong><small>Manage explicit entries below</small></button>
+              </div>
+              <label class="strict-row">
+                <input type="checkbox" id="perms-skills-strict" name="skill_allowlist_strict">
+                <span><strong>Strict skill allowlist</strong><small>Expose only the skills explicitly selected below.</small></span>
+              </label>
+              <label class="builder-search-wrap catalog-search" for="skill-catalog-filter">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                <input type="search" id="skill-catalog-filter" class="builder-search" placeholder="Find a skill" autocomplete="off">
+              </label>
+              <div id="skill-catalog" class="catalog-groups"></div>
+              <details class="advanced-rules">
+                <summary>Advanced skill rules <span>Edit identifiers directly</span></summary>
+                <label class="perms-field">
+                  <span class="perms-label">Raw skill allowlist <em class="perms-hint">one identifier per line; empty means all discovered skills</em></span>
+                  <textarea id="perms-skills" name="skill_allowlist" rows="5" spellcheck="false"></textarea>
+                </label>
+              </details>
+            </article>
+          </div>
+
+          <aside class="effective-card" aria-label="Effective capabilities">
+            <header>
+              <div><span class="live-dot" aria-hidden="true"></span><h3>Effective access</h3></div>
+              <p>What the selected agent receives after profiles, allowlists, discovery, strict mode, and denies are resolved.</p>
+            </header>
+            <section class="effective-section">
+              <div class="effective-title"><h4>Tools</h4><span id="eff-tools-count" class="perms-count"></span></div>
+              <label class="builder-search-wrap" for="eff-tools-filter">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                <input type="search" id="eff-tools-filter" class="builder-search" placeholder="Filter effective tools" autocomplete="off">
+              </label>
+              <ul id="eff-tools-list" class="perms-taglist"></ul>
+            </section>
+            <section class="effective-section">
+              <div class="effective-title"><h4>Skills</h4><span id="eff-skills-count" class="perms-count"></span></div>
+              <ul id="eff-skills-list" class="perms-taglist"></ul>
+            </section>
+            <div class="effective-footnote"><strong>Why can counts differ?</strong><p>Profiles can add tools, disabled rules subtract them, and MCP functions may be discovered at runtime. Save to ask the backend for a fresh effective result.</p></div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="card-runtime" class="builder-panel" data-panel="runtime" hidden>
+        <div class="panel-heading">
+          <div>
+            <span class="builder-eyebrow">Execution defaults</span>
+            <h2>Runtime behavior</h2>
+            <p>These settings shape new sessions. Existing sessions keep the model and prompt context they started with.</p>
+          </div>
+          <span class="status-badge status-neutral">New sessions</span>
+        </div>
+
+        <div class="runtime-layout">
+          <div class="runtime-settings">
+            <article class="runtime-card">
+              <div class="runtime-card-heading"><span>01</span><div><h3>Model route</h3><p>Select the model identity and provider route used when this agent starts a session.</p></div></div>
+              <label class="perms-field runtime-field">
+                <span class="perms-label">Model</span>
+                <select id="perms-model" class="builder-select" name="upstream_model" aria-label="Model">
+                  <option value="">loading…</option>
+                </select>
+                <span id="perms-model-note" class="field-note" role="note"></span>
+              </label>
+            </article>
+
+            <article class="runtime-card">
+              <div class="runtime-card-heading"><span>02</span><div><h3>Permission posture</h3><p>Controls how the host handles tool calls after allow and deny rules are evaluated.</p></div></div>
+              <label class="perms-field runtime-field">
+                <span class="perms-label">Permission mode</span>
+                <select id="perms-mode" class="builder-select" name="permission_mode">
+                  <option value="auto">auto — execute within configured authority</option>
+                  <option value="ask">ask — pause for destructive approvals</option>
+                  <option value="plan">plan — read-only planning posture</option>
+                </select>
+              </label>
+              <div id="permission-mode-explainer" class="runtime-explainer"></div>
+            </article>
+
+            <article class="runtime-card">
+              <div class="runtime-card-heading"><span>03</span><div><h3>Delegation behavior</h3><p>Choose whether first-party child-agent calls wait inline or detach as asynchronous work.</p></div></div>
+              <label class="perms-field runtime-field">
+                <span class="perms-label">Delegation mode</span>
+                <select id="perms-delegation" class="builder-select" name="delegation_mode">
+                  <option value="">inherit profile default</option>
+                  <option value="background">background — detach and continue</option>
+                  <option value="foreground">foreground — wait for completion inline</option>
+                  <option value="default">default — defer to the model or environment</option>
+                </select>
+              </label>
+              <div id="delegation-mode-explainer" class="runtime-explainer"></div>
+            </article>
+
+            <article class="runtime-card">
+              <div class="runtime-card-heading"><span>04</span><div><h3>Agent description</h3><p>Summary description shown on the agent picker cards and in the UI.</p></div></div>
+              <label class="perms-field runtime-field">
+                <span class="perms-label">Description <em class="perms-hint">shown on agent picker cards</em></span>
+                <textarea id="perms-description" class="builder-textarea" name="description" rows="2" placeholder="Agent description…"></textarea>
+              </label>
+            </article>
+          </div>
+
+          <aside class="runtime-context">
+            <span class="builder-eyebrow">Resolved context</span>
+            <h3>Where these defaults come from</h3>
+            <dl>
+              <div><dt>Agent profile</dt><dd id="runtime-profile">—</dd></div>
+              <div><dt>Execution engine</dt><dd id="runtime-engine">—</dd></div>
+              <div><dt>Model owner</dt><dd id="runtime-model-owner">—</dd></div>
+              <div><dt>Delegation source</dt><dd id="runtime-delegation-source">—</dd></div>
+              <div><dt>Config fingerprint</dt><dd id="runtime-config-sha" class="mono-value">—</dd></div>
+            </dl>
+            <div class="context-callout"><strong>Layering model</strong><p>Global defaults establish a baseline, the agent profile applies role-specific policy, and this agent’s own config is merged last.</p></div>
+            <div class="context-callout"><strong>Safe updates</strong><p>Saves are fingerprint-guarded. If the file changes elsewhere, Builder reloads instead of overwriting someone else’s work.</p></div>
+          </aside>
+        </div>
+      </section>
+    </form>
+  </main>
+
+  <footer id="builder-savebar" class="builder-savebar" hidden>
+    <div class="savebar-copy"><span class="unsaved-dot" aria-hidden="true"></span><div><strong>Unsaved configuration</strong><small>Review the effective result after saving.</small></div></div>
+    <span id="perms-status" class="perms-status" role="status"></span>
+    <button type="button" id="perms-reload" class="builder-btn builder-btn-ghost">Discard changes</button>
+    <button type="submit" id="perms-save" class="builder-btn builder-btn-primary" form="perms-form">Save configuration</button>
+  </footer>
+</div>
+<script src="{{ base }}/static/nav.js?v={{ asset_rev('nav.js') }}"></script>
+<script src="{{ base }}/static/confirm-card.js?v={{ asset_rev('confirm-card.js') }}"></script>
+<script src="{{ base }}/static/agent_builder.js?v={{ asset_rev('agent_builder.js') }}"></script>
+</body>
+</html>

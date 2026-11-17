@@ -1,0 +1,825 @@
+/* sharedagents loops page — scheduled-work portfolio.
+   Mirrors goals.css conventions: card grid, plain-language status badges,
+   session deep-link CTA, detail pane with native disclosures. */
+
+#loops-app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1100px;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  margin: 0 auto;
+  padding: 0 16px;
+  /* overflow-y:auto (not hidden): the New loop form sits ABOVE
+     .loops-main. A locked clip hid Start and the lower board. */
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.loops-header { flex: none; }
+.loops-title-block { min-width: 0; }
+
+.loops-total {
+  font: 600 11px/1.4 var(--font-sans);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.loops-total strong { color: var(--text-primary); font-weight: 700; }
+
+.loops-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.loops-view-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-pill);
+  background: var(--bg-tertiary);
+}
+.loops-view-tab {
+  min-height: 28px;
+  padding: 4px 14px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  font: 500 12px/1.4 var(--font-sans);
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.loops-view-tab:hover { color: var(--text-primary); }
+.loops-view-tab.active {
+  background: var(--bg-active);
+  color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+.loops-view-tab:focus-visible,
+.loop-primary-btn:focus-visible,
+.loop-action-btn:focus-visible,
+.loop-details-btn:focus-visible,
+.loop-session-link:focus-visible,
+.loop-icon-btn:focus-visible,
+.loop-detail-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.loops-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.loops-board-hint { margin: 0; color: var(--text-muted); font-size: 11.5px; }
+
+.loop-text-btn {
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: 500 12px/1.4 var(--font-sans);
+  cursor: pointer;
+  padding: 4px 6px;
+}
+.loop-text-btn:hover { color: var(--accent); }
+
+.loop-primary-btn,
+.loop-action-btn,
+.loop-details-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font: 600 12px/1.4 var(--font-sans);
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
+}
+.loop-primary-btn {
+  border-color: rgba(90, 255, 138, .32);
+  background: rgba(90, 255, 138, .1);
+  color: var(--accent);
+}
+.loop-primary-btn:hover {
+  background: rgba(90, 255, 138, .18);
+  color: var(--accent);
+}
+.loop-action-btn:hover,
+.loop-details-btn:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+/* The terminal action (Stop) is the one destructive-looking control on the
+   page — keep it visually distinct from pause/resume, in card AND detail. */
+.loop-action-btn.is-danger {
+  border-color: color-mix(in srgb, var(--error) 45%, var(--border-color));
+  background: rgba(231, 76, 60, .08);
+  color: var(--error);
+}
+.loop-action-btn.is-danger:hover {
+  background: rgba(231, 76, 60, .16);
+  color: var(--error);
+}
+.loop-primary-btn:disabled,
+.loop-action-btn:disabled { opacity: .5; cursor: default; }
+.loop-card-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.loop-card-error {
+  color: var(--error);
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 0 12px 8px;
+}
+
+.loops-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--bg-secondary);
+}
+.loops-create-form[hidden] { display: none; }
+.loops-create-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.loops-create-heading h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 650;
+}
+.loops-create-heading p {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.loop-icon-btn {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.loop-icon-btn:hover { color: var(--text-primary); }
+
+.loops-create-form textarea,
+.loops-create-form input,
+.loops-create-form select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border-color);
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font: 400 13px/1.5 var(--font-sans);
+}
+.loops-create-form textarea {
+  padding: 9px 11px;
+  resize: vertical;
+  min-height: 66px;
+}
+.loops-create-form textarea:focus,
+.loops-create-form input:focus,
+.loops-create-form select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.loops-create-form textarea::placeholder,
+.loops-create-form input::placeholder { color: var(--text-muted); }
+/* A row's `hidden` attribute must beat the display rules
+   below — .loops-create-row is `display: grid`, which would otherwise keep a
+   hidden field group visible in both radio modes. */
+#loops-create-form [hidden] { display: none !important; }
+/* F1: radios are not text fields — undo the 100%-width stretch so the run-in
+   choice keeps its intrinsic control size. */
+.loops-create-form input[type="radio"] { width: auto; }
+.loops-create-form input[type="checkbox"] { width: auto; }
+.loops-create-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(120px, .6fr);
+  gap: 10px;
+  align-items: end;
+}
+/* Agent + Model share one row (agent names are short, model ids are long);
+   Topic moves to its own optional row underneath. Desktop only — the
+   ≤640px media rule stacks every .loops-create-row to one column and must
+   not lose to these id-specific selectors. */
+@media (min-width: 641px) {
+  #loops-new-session-fields {
+    grid-template-columns: minmax(130px, .7fr) minmax(0, 1.3fr);
+  }
+  #loops-topic-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.loop-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.loop-field > span {
+  color: var(--text-secondary);
+  font: 600 11px/1.4 var(--font-sans);
+}
+.loop-session-select,
+.loop-interval-input { min-height: 34px; padding: 6px 10px; }
+.loops-create-footer { display: flex; justify-content: flex-end; }
+.loops-create-actions { display: flex; gap: 8px; flex: none; }
+.loops-error { min-height: 0; color: var(--error); font-size: 12px; }
+.loops-error:empty { display: none; }
+
+/* D1/D3 — run-in choice, form hints, readonly interval. */
+.loops-run-in {
+  border: none;
+  padding: 0;
+  margin: 0 0 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+}
+.loops-run-in legend {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #999);
+  margin-bottom: 6px;
+}
+.loops-run-in-option {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  border: 1px solid var(--border, rgba(128,128,128,.35));
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.loops-run-in-option:has(input:checked) {
+  border-color: var(--accent, #4da3ff);
+  background: color-mix(in srgb, var(--accent, #4da3ff) 8%, transparent);
+}
+.loops-run-in-option input { margin-top: 2px; }
+.loops-run-in-option strong { display: block; font-size: 13px; }
+.loops-run-in-option small { color: var(--text-muted, #999); font-size: 11px; }
+.loops-form-hint {
+  margin: -4px 0 10px;
+  font-size: 11.5px;
+  color: var(--text-muted, #999);
+  line-height: 1.45;
+}
+.loops-interval-input[readonly] { opacity: .75; cursor: default; }
+#loops-frequency-row { margin-top: 8px; }
+
+.loops-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  /* Bound the single grid ROW so the list panel's
+     overflow:auto has a definite height on desktop — the app container
+     stays viewport-locked and the PANEL scrolls, never the page. */
+  grid-template-rows: minmax(0, 1fr);
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+  padding: 14px 0 18px;
+}
+.has-detail .loops-main {
+  grid-template-columns: minmax(300px, .9fr) minmax(390px, 1.15fr);
+}
+.loops-list-panel,
+.loops-detail {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.loops-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+  align-content: stretch;
+  padding: 1px 2px 2px;
+}
+.loop-state-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--bg-secondary);
+}
+.loop-state-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 650;
+}
+.loop-state-header span:last-child { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.loop-state-body {
+  display: grid;
+  gap: 6px;
+  padding: 6px 8px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.loop-state-empty { padding: 10px; color: var(--text-muted); font-size: 12px; text-align: center; }
+.has-detail .loops-list { grid-template-columns: 1fr; }
+
+.loop-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 126px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--bg-secondary);
+  transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.loop-card:hover { border-color: var(--border-strong); background: color-mix(in srgb, var(--bg-hover) 50%, var(--bg-secondary)); }
+.loop-card.selected {
+  border-color: color-mix(in srgb, var(--accent) 62%, var(--border-color));
+  box-shadow: 0 0 0 1px var(--accent-glow);
+}
+.loop-card-summary {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.loop-card-summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+.loop-card-head,
+.loop-detail-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.loop-card-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+.loop-card-title:has(.loop-agent-chip) .loop-session-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.loop-session-title {
+  display: block;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow: hidden;
+}
+.loop-agent-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  margin-top: 0;
+  flex: none;
+  padding: 0 7px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-pill);
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  font: 500 10px/1.6 var(--font-sans);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.loop-period-chip {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  /* Wide enough for "daily at 09:30" without clipping. */
+  max-width: 190px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-pill);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font: 600 10.5px/1.4 var(--font-sans);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.loop-card .loop-prompt {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.loop-run-meta {
+  color: var(--text-muted);
+  font-size: 10.5px;
+}
+.loop-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.loop-session-unavailable { color: var(--text-muted); font-size: 11.5px; }
+.loop-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, .012);
+}
+/* Compact footer controls inside the card — the summary carries the
+   information, the footer only carries actions. */
+.loop-card .loop-session-link,
+.loop-card .loop-action-btn,
+.loop-card .loop-details-btn {
+  min-height: 25px;
+  padding: 2px 9px;
+  font-size: 11.5px;
+}
+.loop-card .loop-session-link { gap: 5px; }
+.loop-details-btn {
+  min-height: 28px;
+  padding-inline: 9px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-secondary);
+}
+.loop-session-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-pill);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
+}
+.loop-session-link svg { flex: none; }
+.loop-session-link:hover { border-color: var(--accent); color: var(--accent-hover); }
+.loop-session-link.is-primary {
+  border-color: rgba(90, 255, 138, .32);
+  background: rgba(90, 255, 138, .1);
+  color: var(--accent);
+}
+.loop-session-link.is-primary:hover { background: rgba(90, 255, 138, .18); }
+.loop-session-link.is-large { width: fit-content; min-height: 36px; padding: 6px 14px; }
+
+/* Status is written out in plain language; no separate legend is needed. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 2px 7px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-pill);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font: 600 10.5px/1.4 var(--font-sans);
+}
+.loop-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+/* A scheduled loop is NOT executing between ticks — the
+   dot is a steady status indicator (supervisor healthy), not a pulsing
+   "turn in flight" beacon, which the heartbeat alone cannot prove. */
+.badge-working .loop-dot {
+  background: var(--accent);
+}
+.badge-needs_input .loop-dot { background: var(--warning); }
+.badge-completed .loop-dot { background: var(--accent); opacity: .65; }
+.badge-paused .loop-dot { background: var(--warning); }
+.badge.is-stalled { color: var(--text-muted); }
+.badge.is-stalled .loop-dot { background: var(--text-muted); }
+
+/* Detail pane: essentials first, everything noisy behind native disclosures. */
+.loops-detail {
+  border: 1px solid var(--border-color);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--bg-secondary);
+  padding: 14px;
+  align-self: start;
+  max-height: calc(100vh - 210px);
+  overflow: auto;
+}
+.loops-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.loops-detail-header h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 650;
+}
+.loop-detail-close {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.loop-detail-close:hover { color: var(--text-primary); }
+.loop-detail-section { margin-bottom: 12px; }
+.loop-detail-section:last-child { margin-bottom: 0; }
+.loop-detail-section > h3 {
+  margin: 0 0 6px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.loop-detail-prompt {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.loop-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 14px;
+}
+.loop-detail-grid .loop-detail-kv { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.loop-detail-grid dt,
+.loop-detail-grid .loop-detail-kv > span {
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.loop-detail-grid dd,
+.loop-detail-grid .loop-detail-kv > b {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+.loop-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.loop-detail-error { color: var(--error); font-size: 12px; min-height: 0; margin-top: 8px; }
+.loop-detail-error:empty { display: none; }
+
+details.loop-disclosure {
+  border: 1px solid var(--border-color);
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--bg-tertiary);
+  margin-bottom: 10px;
+}
+details.loop-disclosure > summary {
+  padding: 8px 11px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+details.loop-disclosure > summary::-webkit-details-marker { display: none; }
+details.loop-disclosure > summary::marker { content: ""; }
+details.loop-disclosure[open] > summary { color: var(--text-primary); }
+details.loop-disclosure > .loop-disclosure-body {
+  padding: 0 11px 11px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.loop-events {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
+.loops-loading {
+  grid-column: 1 / -1;
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 22px 4px;
+}
+.loops-empty {
+  grid-column: 1 / -1;
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 26px 4px;
+}
+.loops-load-error {
+  grid-column: 1 / -1;
+  color: var(--error);
+  font-size: 12px;
+  padding: 18px 4px;
+}
+.loop-event {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+.loop-event:last-child { border-bottom: 0; }
+.loop-event-type {
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+.loop-event-meta {
+  color: var(--text-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.loop-event-payload {
+  grid-column: 1 / -1;
+  margin-top: 3px;
+  padding: 6px 8px;
+  border-radius: calc(var(--radius) - 3px);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font: 11px/1.5 var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.loop-detail-note {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: calc(var(--radius) - 3px);
+  background: var(--bg-tertiary);
+  font-size: 12px;
+}
+.loop-detail-note > strong {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 4px;
+}
+.loop-detail-note > p { margin: 0; color: var(--text-primary); overflow-wrap: anywhere; }
+.loop-detail-note.is-error { border-color: color-mix(in srgb, var(--error) 45%, var(--border-color)); }
+.loop-detail-note.is-error > p { color: var(--error); }
+
+@media (max-width: 820px) {
+  /* Mobile: unlock the viewport lock so the whole page
+     scrolls on phones. style.css locks body to height:100vh/overflow:hidden
+     and #loops-app was height:100dvh/overflow:hidden, so the page could
+     never scroll — even the create form's Start button was unreachable.
+     Same unlock pattern as goals.css: body scrolls, the app grows, the
+     panels stop clamping. The sticky header keeps section context. */
+  body.monitor-body {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  #loops-app {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 0 12px;
+    overflow: visible;
+  }
+  .loops-main { flex: none; }
+  .loops-list-panel,
+  .loops-detail {
+    max-height: none;
+    overflow: visible;
+    display: block;
+  }
+  .loops-list {
+    flex: none;
+    grid-template-rows: none;
+    align-content: start;
+  }
+  .loop-state-column {
+    height: auto;
+    min-height: 170px;
+  }
+  .loop-state-body {
+    flex: none;
+    overflow: visible;
+  }
+  .has-detail .loops-main { grid-template-columns: minmax(0, 1fr); }
+  /* Mobile: opening a detail swaps the list for the detail pane (goals
+     pattern). The old rule hid the DETAIL, which made /loops/<id> dead on
+     phones — the × close returns to the list. */
+  .has-detail .loops-list-panel { display: none; }
+  .loops-list { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  #loops-app { padding: 0 10px; }
+  .loops-header { gap: 9px; }
+  .loops-title-block p,
+  .loops-total { display: none; }
+  .loops-header .mon-header-right { gap: 5px; }
+  .loops-toolbar { gap: 8px; padding: 8px 0; }
+  .loops-view-tab { min-height: 26px; padding-inline: 10px; font-size: 11px; }
+  .loop-primary-btn { min-height: 28px; padding-inline: 9px; }
+  .loops-create-form { padding: 13px; }
+  .loops-create-row { grid-template-columns: minmax(0, 1fr); }
+  .loops-main { padding-top: 10px; }
+  .loop-card { min-height: 112px; }
+  .loop-card-summary { padding: 9px 10px; }
+  .loop-card-footer { gap: 6px; }
+  .loops-detail { padding: 12px; }
+}
+
+@media (max-width: 520px) {
+  #loops-app { padding: 0 7px; }
+  .loops-title-block .mon-title h1 { font-size: 15px; }
+  .loops-view-tab { padding-inline: 8px; }
+  .loops-toolbar-actions { gap: 5px; }
+  .loop-primary-btn { font-size: 11px; }
+  .loops-list { grid-template-columns: 1fr; }
+  .loop-card-footer { flex-wrap: wrap; }
+  .loop-card-actions { margin-left: 0; }
+  .loop-detail-grid { grid-template-columns: 1fr; }
+  .loop-detail-actions { flex-direction: column; align-items: stretch; }
+  .loop-detail-actions .loop-action-btn { width: 100%; }
+}

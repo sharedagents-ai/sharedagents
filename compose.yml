@@ -1,0 +1,31 @@
+# docker compose up --build    → WebUI on http://127.0.0.1:8110
+#
+# SHAREDAGENTS_WEB_PUBLISH picks the host address:port for the WebUI, e.g.
+# `SHAREDAGENTS_WEB_PUBLISH=0.0.0.0:18110` to reach it from the LAN. All state
+# (config, sessions, the generated web secret) lives in the named volume.
+#
+# Provider API keys (e.g. DEEPSEEK_API_KEY=...) go in an env file, read at
+# container start and never baked into the image: `.env` next to this file by
+# default, or the path in SHAREDAGENTS_ENV_FILE. A model server on the Docker
+# host (vLLM, llama.cpp, Ollama, ...) is reachable as http://host.docker.internal:<port>.
+#
+# Create the first (admin) login, then sign in at the WebUI:
+#   docker compose exec sharedagents sharedagents-web --create-user you@example.com
+services:
+  sharedagents:
+    build: .
+    image: sharedagents:local
+    init: true
+    restart: unless-stopped
+    ports:
+      - "${SHAREDAGENTS_WEB_PUBLISH:-127.0.0.1:8110}:8110"
+    env_file:
+      - path: ${SHAREDAGENTS_ENV_FILE:-.env}
+        required: false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - sharedagents-data:/data
+
+volumes:
+  sharedagents-data:

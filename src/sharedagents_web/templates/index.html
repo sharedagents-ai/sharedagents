@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>{{ site_title }}</title>
+<link rel="icon" type="image/svg+xml" href="{{ base }}/static/favicon.svg">
+<!-- Installable PWA: linked manifest + apple-touch metadata so
+     the app installs to the home screen with its own identity. The service
+     worker is registered from app.js. Colors track style.css :root --bg-primary. -->
+<link rel="manifest" href="{{ base }}/manifest.webmanifest">
+<meta name="theme-color" content="#09090e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="{{ site_title }}">
+<link rel="apple-touch-icon" href="{{ base }}/static/favicon.svg">
+<meta name="sharedagents-base" content="{{ base }}">
+<meta name="sharedagents-public-base" content="{{ public_base }}">
+<meta name="sharedagents-disable-sse" content="{{ '1' if disable_sse else '0' }}">
+<meta name="sharedagents-user-email" content="{{ current_user_email }}">
+<meta name="sharedagents-user-name" content="{{ current_user_name }}">
+<!-- Realtime-voice server URL (empty → app.js derives <host>:8123). The inline
+     realtime button streams to this; the standalone Voice page also points here. -->
+<meta name="sharedagents-realtime" content="{{ realtime_url }}">
+<meta name="sharedagents-rt-onnx" content="{{ base }}/static/vendor/onnxruntime/ort.wasm.min.js?v={{ asset_rev('vendor/onnxruntime/ort.wasm.min.js') }}">
+<meta name="sharedagents-rt-wake" content="{{ base }}/static/wakeword.js?v={{ asset_rev('wakeword.js') }}">
+<meta name="sharedagents-rt-engine" content="{{ base }}/static/realtime.js?v={{ asset_rev('realtime.js') }}">
+<link rel="stylesheet" href="{{ base }}/static/style.css?v={{ asset_rev('style.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/menu.css?v={{ asset_rev('menu.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/vendor/github-dark.min.css?v={{ asset_rev('vendor/github-dark.min.css') }}">
+{% include "_ui_zoom.html" %}
+<script src="{{ base }}/static/vendor/marked.min.js?v={{ asset_rev('vendor/marked.min.js') }}"></script>
+<script src="{{ base }}/static/vendor/highlight.min.js?v={{ asset_rev('vendor/highlight.min.js') }}"></script>
+<script src="{{ base }}/static/vendor/purify.min.js?v={{ asset_rev('vendor/purify.min.js') }}"></script>
+</head>
+<body>
+<div id="app">
+  {% set active = 'chat' %}
+  {% include "_menu.html" %}
+
+  <!-- ── Main ── -->
+  <main id="main">
+
+    <!-- Chat header — has agent picker inline -->
+    <header id="chat-header">
+      <button id="toggle-sidebar" class="icon-btn" aria-label="Toggle sidebar" aria-expanded="false">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      <div class="header-info">
+        <!-- Conversation title (was missing) — the primary heading; the agent +
+             model ride below it as a small subtitle. -->
+        <span id="session-title" class="session-title" title="">New Chat</span>
+        <!-- Hidden, not removed: render.js and sessions.js write to
+             #current-agent and #effective-mode unguarded, so deleting the
+             nodes throws and kills rendering. The footer chip owns this
+             information now. -->
+        <span class="header-sub header-sub-hidden">
+          <span id="current-agent">jarvis</span>
+          <span id="effective-mode" class="effective-mode-badge" aria-live="polite">Auto</span>
+          <span id="engine-model" class="engine-model-badge" style="display:none" title="Model"></span>
+        </span>
+      </div>
+      <div class="header-actions">
+        <!-- Private / public sharing of the open conversation. -->
+        <div class="share-wrap">
+          <button id="share-btn" class="icon-btn share-btn" type="button" aria-haspopup="dialog" aria-expanded="false" hidden></button>
+          <div id="share-pop" class="share-pop" role="dialog" aria-label="Sharing" hidden></div>
+        </div>
+        <span id="viewer-badge" class="viewer-badge" title="Signed in as {{ current_user_email }}">{{ current_user_name }}</span>
+        <span id="conn-badge" class="conn-badge conn-unknown" title="Gateway connection"></span>
+        <span id="teacher-badge" class="teacher-badge" style="display:none" title="Teacher supervision active">🧑‍🏫</span>
+        <!-- All session options collapsed behind one ⚙ button (like the monitor's
+             Filters card): agent / model / teacher live inside. -->
+        <details id="options-card" class="options-card">
+          <summary class="options-summary" title="Session options" aria-label="Session options">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
+              <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
+              <line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>
+            </svg>
+          </summary>
+          <div class="options-body">
+            <div class="options-row">
+              <label class="opt-row opt-mode-row"><span class="opt-label">Mode</span>
+                <select id="opt-mode" class="opt-select" aria-label="Permission or engine mode">
+                  <option value="auto">Allow all</option>
+                </select>
+              </label>
+              <label class="opt-row opt-live-row">
+                <span class="opt-label">Live updates</span>
+                <div id="opt-transport" class="opt-live-switch" role="group" aria-label="How new tokens arrive">
+                  <button type="button" class="opt-live-choice" data-transport="sse" aria-pressed="true" title="Push tokens as they are written. Fast, but some office proxies hold the connection empty.">Stream</button>
+                  <button type="button" class="opt-live-choice" data-transport="poll" aria-pressed="false" title="Ask for new tokens every few seconds. Use this if Stream sits at 0 bytes behind a corporate proxy.">Poll</button>
+                </div>
+              </label>
+            </div>
+            <div class="options-row teacher-options-row">
+              <div class="teacher-control">
+                <button id="teacher-toggle" class="teacher-toggle opt-toggle" type="button" aria-pressed="false" title="Toggle teacher supervision">
+                  <span class="teacher-toggle-icon">🧑‍🏫</span>
+                  <span class="teacher-toggle-label">Teacher</span>
+                </button>
+                <select id="teacher-model-select" class="teacher-model-select" aria-label="Teacher model" title="Supervising model"></select>
+              </div>
+            </div>
+            <div id="agent-switch-status" class="agent-switch-status" role="status" aria-live="polite" hidden></div>
+            <div class="options-row">
+              <button id="opt-activity" class="opt-toggle" type="button" aria-pressed="true" title="Off: activity cards stay collapsed. On: expand activity cards.">Activity</button>
+              <button id="opt-reasoning" class="opt-toggle" type="button" aria-pressed="false" title="Off: reasoning cards stay collapsed. On: expand them and follow the latest tokens.">Reasoning</button>
+              <button id="opt-tools" class="opt-toggle" type="button" aria-pressed="false" title="Off: tool cards stay collapsed. On: expand every tool card.">Tools</button>
+              <button id="opt-collapse" class="opt-toggle" type="button" aria-pressed="false" title="Fold every reply to a short preview so a long conversation reads as a list of prompts; tap a reply to expand it.">Collapse replies</button>
+            </div>
+            {% if is_admin %}
+            <div class="options-row">
+              <button id="opt-secret" class="opt-toggle" type="button" title="Give the agents a secret without putting it in the chat">Add secret</button>
+            </div>
+            {% endif %}
+          </div>
+        </details>
+        <button id="commands-btn" class="icon-btn" title="Commands (/)" aria-label="Commands">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="4 17 10 11 4 5"/>
+            <line x1="12" y1="19" x2="20" y2="19"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+    <!-- Indeterminate progress bar — visible only while a turn runs (a familiar
+         "in progress" cue that complements the live status ticker). -->
+    <div id="turn-progress" class="turn-progress" hidden></div>
+
+    <!-- ── Chat view ── -->
+    <div id="chat-view" class="chat-view">
+      <div id="messages" class="messages-container">
+        <div id="welcome-screen" class="welcome-screen">
+          <div class="welcome-content">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+            <h1>{{ site_title }}</h1>
+            <p>Chat with any {{ site_title }} agent. Select an agent below, choose a model, then send a message — or type <code>/</code> for commands.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-container">
+        <!-- Notification opt-in (plan §6.0). The app asks BEFORE the browser
+             does: Notification.requestPermission() is one-shot and, once
+             denied, only recoverable from Chrome's site settings — so the
+             native dialog is opened solely from a tap on "Enable" here.
+             Shown at most once per session, on the first turn_started, and
+             only when the origin is secure and permission is still "default".
+             Sits above the composer so it is reachable on a phone (the
+             sidebar is collapsed there). -->
+        <div id="notif-optin" class="notif-optin" role="region"
+             aria-label="Enable notifications" hidden>
+          <div class="notif-optin-title">🔔 Notify you when a turn finishes?</div>
+          <div class="notif-optin-body">
+            Get an alert with sound when the agent finishes, hits an error, or
+            needs an answer — even when you're in another app.
+          </div>
+          <div class="notif-optin-actions">
+            <button type="button" id="notif-optin-yes" class="notif-btn notif-btn-primary">Enable</button>
+            <button type="button" id="notif-optin-later" class="notif-btn">Not now</button>
+            <button type="button" id="notif-optin-never" class="notif-btn notif-btn-ghost">Never</button>
+          </div>
+        </div>
+        <!-- Realtime voice phase indicator (say "Hey Jarvis" → listening →
+             transcribing → answering). Its OWN surface so the canonical session
+             status (#status-text) never clobbers it. Shown only while a realtime
+             voice session is active. -->
+        <div id="realtime-voice-status" class="realtime-voice-status" role="status" aria-live="polite" hidden></div>
+        <!-- Live STT caption while realtime voice is listening — shows what the
+             mic just heard (partial + finalized segments). Display-only; the
+             gateway session remains the source of truth for committed turns. -->
+        <div id="realtime-listening-caption" class="realtime-listening-caption" role="status" aria-live="polite" hidden>
+          <span class="rt-caption-label">Hearing</span>
+          <span class="rt-caption-text"></span>
+        </div>
+        <!-- Pending follow-ups stay next to the composer so they are visible
+             and actionable without opening the session-status footer. -->
+        <section id="queue-widget" class="queue-widget" aria-label="Queued messages" hidden></section>
+        <div class="composer-card">
+        <!-- One OpenClaw card: attach + draft + send on the first row,
+             agent/model/context on the second row, exceptional widgets
+             under that — all inside the same 1px pill. The idle/live ticker
+             sits inside this card, not above it. -->
+        <div class="input-wrapper composer-input">
+          <!-- Todo / tasks sit on a full row above the idle/live ticker.
+               Default-expanded; the list grows upward (column-reverse) and
+               caps at 5 rows with its own scrollbar. -->
+          <div id="harness-widget" class="status-widget harness-widget" hidden></div>
+          <div class="input-footer">
+            <span id="status-text" role="status" aria-live="polite" aria-atomic="true"></span>
+          </div>
+          <div id="slash-menu" class="slash-menu" hidden></div>
+          {% include "_composer_input.html" %}
+        <div class="composer-toolbar">
+          <div id="status-segments" class="status-widget status-segments"></div>
+        </div>
+        <!-- Session status bar — exceptional widgets under the toolbar
+             (goal / teacher / compact). Todo / tasks live at the top of
+             this card (#harness-widget), above the status ticker. -->
+        <div id="session-status" class="session-status" hidden>
+          <div id="goal-widget" class="status-widget goal-widget" hidden></div>
+          <div id="teacher-widget" class="status-widget teacher-widget"></div>
+          <!-- Compact-context progress widget. STATIC sibling
+               of the re-rendered #status-segments toolbar so the confirm prompt /
+               spinner / result survive re-renders. Hidden until compaction. -->
+          <div id="compact-status-widget" class="status-widget compact-widget"
+               role="status" aria-live="polite" hidden></div>
+          <!-- Agent + model are selected FROM the chip that
+               shows them. Lives outside #status-segments because that node is
+               re-rendered wholesale on every status update, which would destroy
+               live <select> elements and any open dropdown. -->
+          <!-- One card, two sections — pick the agent,
+               then its model. Sits OUTSIDE #status-segments because that node is
+               re-rendered wholesale on every status update. -->
+          {% include "_agent_model_pop.html" %}
+          <!-- The persistent Agent Monitor budget indicator
+               opens this editor. The mutation still goes through shared
+               /budget. -->
+          <div id="budget-backdrop" class="amp-backdrop" hidden></div>
+          <div id="budget-editor" class="budget-editor" hidden role="dialog"
+               aria-modal="true" aria-labelledby="budget-title">
+            <div class="amp-head">
+              <span id="budget-title" class="amp-head-title">Budget</span>
+              <button type="button" id="budget-close" class="amp-close"
+                      aria-label="Close budget editor">×</button>
+            </div>
+            <form id="budget-form">
+              <label class="budget-field" for="budget-input">
+                <span>Whole-tree budget (USD)</span>
+                <div class="budget-input-wrap">
+                  <span aria-hidden="true">$</span>
+                  <input id="budget-input" name="budget" type="number"
+                         min="0" step="0.01" inputmode="decimal" required
+                         autocomplete="off" aria-describedby="budget-context budget-error">
+                </div>
+              </label>
+              <p id="budget-context" class="budget-context"></p>
+              <p id="budget-error" class="budget-error" role="alert" hidden></p>
+              <div class="budget-actions">
+                <button type="button" id="budget-cancel" class="budget-cancel">Cancel</button>
+                <button type="submit" id="budget-save" class="budget-save">Save budget</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- ── Agents footer + card ─────────────────────────────────────────
+             The footer is a one-line trigger docked within the input card.
+             Clicking it opens #agent-mon-pop, a card styled like the agent
+             selector (fixed sheet + backdrop), so the chat never shrinks.
+             Unlike the full /agents page (every agent, every session), the
+             card shows ONLY the current conversation's agent-switch history
+             in reverse order (latest active first) with its subagents
+             newest-first. Populated by agent_mon_mini.js. -->
+        <div id="agent-mon-acc" class="agent-mon-acc">
+          <div class="ama-summary" role="button" tabindex="0"
+               aria-haspopup="dialog" aria-expanded="false" aria-controls="agent-mon-pop"
+               title="Agent switch history and delegation trees">
+            <span class="ama-twirl" aria-hidden="true">▸</span>
+            <span class="ama-title">Agents</span>
+            <span id="ama-count" class="ama-count"></span>
+            <span class="ama-spacer"></span>
+            <span id="ama-budget" class="ama-budget" hidden></span>
+            <a class="ama-full" href="{{ base }}/agents" title="Open Agents" aria-label="Open Agents">⤢</a>
+          </div>
+        </div>
+        <div id="ama-backdrop" class="amp-backdrop" hidden></div>
+        <div id="agent-mon-pop" class="agent-model-pop agent-mon-pop" hidden role="dialog"
+             aria-modal="true" aria-labelledby="ama-pop-title">
+          <div class="amp-head">
+            <span class="ama-pop-heading">
+              <span id="ama-pop-title" class="amp-title">Agents</span>
+              <span id="ama-pop-count" class="ama-count"></span>
+              <button type="button" id="ama-filter" class="ama-filter" aria-pressed="false"
+                      title="Hide inactive subagents">Active</button>
+            </span>
+            <button type="button" id="ama-pop-close" class="amp-close"
+                    aria-label="Close">×</button>
+          </div>
+          <div id="ama-body" class="ama-body">
+            <div class="ama-empty">No active delegation in this session.</div>
+          </div>
+        </div>
+        <!-- ── Context sheet ─────────────────────────────────────────────────
+             The composer's context meter opens this full-screen sheet: the
+             context the session's model works with, paged by the backend and
+             listed with an infinite, windowed scroll (context_viewer.js). -->
+        <div id="ctx-backdrop" class="amp-backdrop" hidden></div>
+        <div id="ctx-sheet" class="agent-model-pop ctx-sheet" hidden role="dialog"
+             aria-modal="true" aria-labelledby="ctx-title" aria-busy="false">
+          <div class="amp-head ctx-head">
+            <span class="ctx-heading">
+              <span id="ctx-title" class="amp-title">Context</span>
+              <span id="ctx-total" class="ctx-total"></span>
+              <span id="ctx-meter" class="ctx-meter"></span>
+            </span>
+            <span class="ctx-actions">
+              <button type="button" id="ctx-compact" class="ctx-compact" hidden>Compact</button>
+              <button type="button" id="ctx-close" class="amp-close"
+                      aria-label="Close context">×</button>
+            </span>
+          </div>
+          <div id="ctx-confirm" class="ctx-confirm" role="status" aria-live="polite" hidden></div>
+          <div id="ctx-notice" class="ctx-notice" hidden></div>
+          <div id="ctx-scroll" class="ctx-scroll">
+            <div id="ctx-list" class="ctx-list" role="list" aria-label="Context items"></div>
+            <div id="ctx-sentinel" class="ctx-sentinel" aria-hidden="true"></div>
+            <div id="ctx-status" class="ctx-status"></div>
+          </div>
+        </div>
+        </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Feature panel -->
+  <aside id="panel" class="panel" hidden>
+    <div class="panel-header">
+      <span id="panel-title">Panel</span>
+      <button id="panel-close" class="icon-btn" title="Close">&times;</button>
+    </div>
+    <div id="panel-body" class="panel-body"></div>
+  </aside>
+</div>
+
+<!-- Settings Modal -->
+<div id="settings-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Settings</h2>
+      <button id="close-settings" class="icon-btn">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="setting-group" id="zoom-setting-group">
+        <label>UI zoom</label>
+        <div class="zoom-controls" role="group" aria-label="UI zoom">
+          <button type="button" id="zoom-out-btn" class="zoom-btn" aria-label="Decrease zoom">−</button>
+          <span id="zoom-value" class="zoom-value">100%</span>
+          <button type="button" id="zoom-in-btn" class="zoom-btn" aria-label="Increase zoom">+</button>
+          <button type="button" id="zoom-reset-btn" class="zoom-btn zoom-btn-reset">Reset</button>
+        </div>
+        <div class="setting-hint">
+          Shrink or enlarge the whole interface on this device. On a phone, 80–90%
+          usually fits more of the chat on screen.
+        </div>
+      </div>
+      {% if is_admin %}
+      <div class="setting-group">
+        <label>Gateway URL</label>
+        <!-- Live-switchable at runtime, no restart. -->
+        <input type="text" id="setting-gateway" value="{{ gateway_url }}">
+        <button type="button" id="save-gateway" class="btn-secondary">Switch gateway</button>
+        <div id="gateway-switch-status" class="setting-status"></div>
+      </div>
+      <div class="setting-group">
+        <label>Dashboard URL</label>
+        <input type="text" id="setting-dashboard" value="{{ dashboard_url }}" disabled>
+      </div>
+      <div class="setting-group" id="secrets-setting-group">
+        <label>Secrets</label>
+        <ul id="secret-list" class="secret-list"></ul>
+        <button type="button" id="secret-add-settings" class="secret-btn">Add secret</button>
+        <div id="secret-list-status" class="setting-status"></div>
+      </div>
+      {% endif %}
+      <div class="setting-group">
+        <label>Default Agent</label>
+        <select id="setting-default-agent"></select>
+      </div>
+      <!-- Notifications (plan §6.1). Permanent home for the feature: works
+           whether or not the opt-in card was ever seen, and is where someone
+           who answered "Never" can still switch it on. Self-hides when the
+           browser has no Notification API at all (iOS Chrome in a tab). -->
+      <div class="setting-group" id="notif-setting-group" hidden>
+        <label>Notifications</label>
+        <button type="button" id="enable-notifications" class="btn-secondary">
+          Enable notifications + sound
+        </button>
+        <button type="button" id="notif-bg-test" class="btn-secondary" hidden>
+          Test in 5s (switch apps)
+        </button>
+        <div id="notification-status" class="setting-status"></div>
+        <!-- Plain-language state readout. A phone can't be casually
+             remote-debugged and "it doesn't work" has ~6 distinct causes
+             here, so the failing one has to be readable on the device. -->
+        <div id="notification-diagnostic" class="notif-diag"></div>
+        <div id="notification-triggers" class="notification-triggers" hidden>
+          <label><input type="checkbox" id="notif-turn-complete"> Turn completed</label>
+          <label><input type="checkbox" id="notif-turn-error"> Turn error</label>
+          <label><input type="checkbox" id="notif-question"> Question for you</label>
+        </div>
+        <div class="setting-hint">
+          Alerts arrive while {{ site_title }} is open in this browser. Your phone may
+          suspend the tab, so alerts for long turns can be delayed.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if is_admin %}{% include "_secrets_dialog.html" %}{% endif %}
+
+<!-- Realtime-voice engine is lazy-loaded on first mic/realtime click
+     (onnxruntime wasm is large and unused for typed chat). -->
+<!-- app.js de-monolith (Task 9): ordered classic scripts sharing window.App /
+     the global scope. state.js MUST load first; app.js (bootstrap/init) last. -->
+<script src="{{ base }}/static/confirm-card.js?v={{ asset_rev('confirm-card.js') }}"></script>
+<script src="{{ base }}/static/state.js?v={{ asset_rev('state.js') }}"></script>
+<script src="{{ base }}/static/agent_model_catalog.js?v={{ asset_rev('agent_model_catalog.js') }}"></script>
+<script src="{{ base }}/static/authors.js?v={{ asset_rev('authors.js') }}"></script>
+<script src="{{ base }}/static/virtual_scroll.js?v={{ asset_rev('virtual_scroll.js') }}"></script>
+<script src="{{ base }}/static/attachments.js?v={{ asset_rev('attachments.js') }}"></script>
+<script src="{{ base }}/static/output_artifacts.js?v={{ asset_rev('output_artifacts.js') }}"></script>
+<script src="{{ base }}/static/api.js?v={{ asset_rev('api.js') }}"></script>
+<script src="{{ base }}/static/sessions.js?v={{ asset_rev('sessions.js') }}"></script>
+<script src="{{ base }}/static/widget_adapt.js?v={{ asset_rev('widget_adapt.js') }}"></script>
+<script src="{{ base }}/static/ask_user.js?v={{ asset_rev('ask_user.js') }}"></script>
+<script src="{{ base }}/static/streaming.js?v={{ asset_rev('streaming.js') }}"></script>
+<script src="{{ base }}/static/render.js?v={{ asset_rev('render.js') }}"></script>
+<script src="{{ base }}/static/share.js?v={{ asset_rev('share.js') }}"></script>
+<script src="{{ base }}/static/widgets.js?v={{ asset_rev('widgets.js') }}"></script>
+<script src="{{ base }}/static/send.js?v={{ asset_rev('send.js') }}"></script>
+<script src="{{ base }}/static/voice.js?v={{ asset_rev('voice.js') }}"></script>
+<script src="{{ base }}/static/realtime_ui.js?v={{ asset_rev('realtime_ui.js') }}"></script>
+<script src="{{ base }}/static/markdown.js?v={{ asset_rev('markdown.js') }}"></script>
+<script src="{{ base }}/static/commands.js?v={{ asset_rev('commands.js') }}"></script>
+<script src="{{ base }}/static/polish.js?v={{ asset_rev('polish.js') }}"></script>
+<script src="{{ base }}/static/notifications.js?v={{ asset_rev('notifications.js') }}"></script>
+<script src="{{ base }}/static/launch.js?v={{ asset_rev('launch.js') }}"></script>
+<script src="{{ base }}/static/app.js?v={{ asset_rev('app.js') }}"></script>
+<script src="{{ base }}/static/agent_mon_mini.js?v={{ asset_rev('agent_mon_mini.js') }}"></script>
+<script src="{{ base }}/static/context_viewer.js?v={{ asset_rev('context_viewer.js') }}"></script>
+{% if is_admin %}<script src="{{ base }}/static/secrets.js?v={{ asset_rev('secrets.js') }}"></script>{% endif %}
+</body>
+</html>

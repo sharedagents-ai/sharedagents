@@ -1,0 +1,21 @@
+# Keep the public sdist free of local-dev / test fixtures that embed
+# usernames, home paths, and lab IPs (pre-PyPI scrub gate).
+prune tests
+prune plan
+prune docs
+prune hooks
+prune wiki
+prune bench
+prune tools
+prune scripts
+prune _tools
+prune deploy
+prune requirements
+prune spec
+prune .worktrees
+prune .github
+prune .claude
+prune .cursor
+exclude .mcp.json
+exclude .env
+global-exclude .env .env.* *.pyc __pycache__ .DS_Store

@@ -1,0 +1,3 @@
+/sharedagents.bat text eol=crlf
+/sharedagents-stop.bat text eol=crlf
+/sharedagents-status.bat text eol=crlf

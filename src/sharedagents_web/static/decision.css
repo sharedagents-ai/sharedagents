@@ -1,0 +1,301 @@
+/* Decision tab — typed System One playground. Same tokens as Usage/Models. */
+
+.decision-body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+#decision-app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1100px;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  margin: 0 auto;
+  padding: 0 16px 32px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--bg-primary);
+  box-sizing: border-box;
+  scrollbar-gutter: stable;
+}
+
+#decision-app .decision-header {
+  flex: none;
+}
+
+.decision-main {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 12px;
+  padding: 8px 0 24px;
+}
+
+.decision-status {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  font: 400 13px/1.4 var(--font-sans);
+}
+
+.decision-status.is-error {
+  border-color: rgba(239, 154, 144, 0.45);
+  background: rgba(239, 154, 144, 0.08);
+}
+
+.decision-panel {
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+}
+
+.decision-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.decision-panel-header h2 {
+  margin: 0;
+  font: 600 15px/1.3 var(--font-sans);
+}
+
+.decision-meta,
+.decision-hint {
+  color: var(--text-secondary);
+  font: 400 12px/1.4 var(--font-sans);
+}
+
+.decision-hint {
+  margin: 0 0 12px;
+}
+
+.decision-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  min-width: 0;
+  font: 500 12px/1.3 var(--font-sans);
+  color: var(--text-secondary);
+}
+
+.decision-field input,
+.decision-field select,
+.decision-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font: 400 13px/1.45 var(--font-sans);
+}
+
+.decision-field textarea {
+  resize: vertical;
+  min-height: 200px;
+  font-family: var(--font-mono);
+}
+
+.decision-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.decision-question {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+}
+.decision-question-toolbar { display: flex; align-items: center; gap: 8px; padding: 4px 8px; }
+.decision-question-toggle { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; min-height: 36px; padding: 4px 0; border: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.decision-chevron { flex-shrink: 0; }
+.decision-question-toggle[aria-expanded="true"] .decision-chevron { transform: rotate(90deg); }
+.decision-question-label { font-weight: 600; overflow-wrap: anywhere; }
+.decision-question-kind { margin-left: auto; color: var(--text-secondary); font-size: 12px; flex-shrink: 0; }
+.decision-delete-btn { flex-shrink: 0; }
+.decision-delete-btn:hover { color: var(--error); }
+.decision-question-body { padding: 0 12px 8px; border-top: 1px solid var(--border-color); }
+
+.decision-question-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px;
+  gap: 8px;
+  align-items: end;
+}
+
+.decision-option-row,
+.decision-level-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+  margin-top: 0;
+}
+
+.decision-level-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.decision-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; min-height: 36px; border: 1px solid transparent; border-radius: var(--radius); background: transparent; color: var(--text-secondary); font: inherit; font-size: 20px; cursor: pointer; }
+.decision-icon-btn:hover { color: var(--error); border-color: var(--border-color); background: var(--bg-tertiary); }
+.decision-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.decision-body button:disabled { opacity: .5; cursor: not-allowed; }
+#decision-questions-empty { padding: 12px 0; }
+
+.decision-empty {
+  color: var(--text-secondary);
+  font: 400 13px/1.5 var(--font-sans);
+}
+
+.decision-results {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.decision-answer {
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+}
+
+.decision-answer-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.decision-answer-name {
+  font: 600 14px/1.3 var(--font-sans);
+}
+
+.decision-answer-value {
+  font: 600 13px/1.3 var(--font-mono);
+  color: #8ee0b0;
+}
+
+.decision-bar {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) 52px;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+  font: 400 12px/1 var(--font-sans);
+}
+
+.decision-bar-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.decision-bar-fill {
+  height: 100%;
+  background: var(--accent);
+}
+
+.decision-raw {
+  margin: 12px 0 0;
+  padding: 12px;
+  overflow: auto;
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  font: 400 12px/1.45 var(--font-mono);
+}
+
+.decision-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font: 500 12px/1 var(--font-sans);
+}
+
+.decision-search { margin: 0 0 14px; max-width: 440px; }
+#decision-providers { display: flex; gap: 4px; overflow-x: auto; margin-bottom: 8px; padding: 0 0 6px; }
+#decision-backends { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 6px; padding: 0; max-height: 220px; overflow-y: auto; scrollbar-gutter: auto; }
+.decision-workspace { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); align-items: start; gap: 18px; }
+.decision-editor { display: grid; gap: 12px; min-width: 0; }
+.decision-output { position: sticky; top: 16px; min-width: 0; }
+.decision-output .decision-empty { padding: 12px 0; line-height: 1.6; }
+.decision-question-head { grid-template-columns: minmax(0, 1fr) 160px; }
+.decision-option-row { grid-template-columns: minmax(110px, .7fr) minmax(0, 1.5fr) auto; align-items: start; }
+.decision-option-row > button, .decision-level-row > button { align-self: start; margin-top: 26px; }
+.decision-bar > span { overflow-wrap: anywhere; }
+.decision-meta, .decision-answer-head { overflow-wrap: anywhere; min-width: 0; }
+.decision-panel { min-width: 0; }
+.decision-body [hidden] { display: none !important; }
+
+.decision-model-summary, .decision-suggest-controls {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.decision-model-summary strong { font-size: 13px; flex: 1; min-width: 100px; overflow-wrap: anywhere; }
+.decision-suggest-controls { margin: 10px 0; }
+#decision-suggest-picker { max-width: 100%; white-space: normal; text-align: left; overflow-wrap: anywhere; }
+#decision-suggest-status { margin: 8px 0; }
+#decision-suggest-status.is-error { color: var(--error, #f85149); }
+.decision-model-dialog {
+  width: min(680px, calc(100vw - 32px)); max-height: calc(100dvh - 32px);
+  padding: 16px; box-sizing: border-box; overflow-y: auto;
+  border: 1px solid var(--border-color); border-radius: 14px;
+  color: var(--text-primary); background: var(--bg-secondary);
+}
+.decision-model-dialog::backdrop { background: rgb(0 0 0 / 60%); }
+.decision-model-dialog:not([open]) { display: none !important; }
+#decision-providers { flex-wrap: wrap; overflow: visible; }
+#decision-providers .amp-provider-tab { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.decision-field textarea.decision-autogrow {
+  min-height: 38px; resize: none; overflow: hidden; font-family: var(--font-sans);
+}
+.decision-question-toggle { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; }
+.decision-answer-head { flex-wrap: wrap; }
+.decision-answer-head > * { min-width: 0; }
+.decision-toggle { flex-shrink: 0; }
+.decision-panel-header h2 { min-width: 0; overflow-wrap: anywhere; }
+.decision-editor { container-type: inline-size; }
+@container (max-width: 460px) {
+  .decision-question-head { grid-template-columns: minmax(0, 1fr); }
+  .decision-option-row { grid-template-columns: minmax(0, 1fr) 44px; align-items: start; }
+  .decision-option-row > .decision-field:first-child { grid-column: 1; }
+  .decision-option-row > .decision-field:nth-child(2) { grid-column: 1; grid-row: 2; }
+  .decision-option-row > button { grid-column: 2; grid-row: 1; margin-top: 26px; }
+  .decision-question-toggle { grid-template-columns: 14px minmax(0, 1fr); }
+  .decision-question-kind { grid-column: 2; margin-left: 0; }
+}
+.decision-body button:focus-visible, .decision-body input:focus-visible, .decision-body textarea:focus-visible, .decision-body select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 900px) {
+  .decision-workspace { grid-template-columns: 1fr; }
+  .decision-output { position: static; }
+}
+@media (max-width: 560px) {
+  #decision-app { padding: 0 10px 16px; }
+  .decision-panel { padding: 12px; }
+  .decision-model-summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  .decision-model-summary strong { grid-column: 1 / -1; grid-row: 2; }
+  .decision-model-summary button { grid-column: 2; grid-row: 1; }
+  .decision-question-toolbar { gap: 4px; }
+  .decision-field input, .decision-field select, .decision-field textarea { font-size: 16px; padding: 8px; }
+  .decision-icon-btn, .decision-body .tasks-btn, .decision-question-toggle { min-height: 44px; }
+  .decision-icon-btn { width: 44px; }
+  .decision-actions { gap: 10px; }
+    #decision-app .decision-header { flex-wrap: nowrap; gap: 12px; }
+  .decision-header .mon-header-right { margin-left: auto; width: auto; }
+  .decision-header .mon-logo span { display: none; }
+  #decision-updated { display: none; }
+}

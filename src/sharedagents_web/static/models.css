@@ -1,0 +1,1241 @@
+/* Models tab — Artificial Analysis benchmark charts.
+ *
+ * Same visual language as usage.css: identical tokens, panel/card geometry,
+ * header anatomy, and legend/table treatment, so the tab reads as native
+ * rather than bolted on. Charts are hand-rolled inline SVG (CSP forbids a CDN
+ * chart library); everything here only styles markup the page ships. */
+
+.models-body {
+  --models-bg: var(--bg-primary);
+  --models-panel: var(--bg-secondary);
+  --models-panel-hover: var(--bg-hover);
+  --models-border: var(--border-color);
+  --models-accent: var(--accent);
+  --models-enabled: var(--accent);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+#models-app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1100px;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  margin: 0 auto;
+  padding: 0 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--bg-primary);
+  box-sizing: border-box;
+  scrollbar-gutter: stable;
+}
+
+#models-app .models-header {
+  flex: none;
+}
+
+.models-product {
+  display: inline-flex;
+  align-items: center;
+  gap: 13px;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.models-product-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #c9ccd4;
+  border: 1px solid var(--border-strong);
+  background:
+    radial-gradient(circle at 32% 25%, rgba(255, 255, 255, 0.14), transparent 38%),
+    linear-gradient(145deg, #313136, #171719);
+}
+
+.models-product:hover .models-product-mark {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.models-product-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.models-product-copy small {
+  font: 600 11px/1 var(--font-mono);
+  color: #b7b8bf;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.models-product-copy > span {
+  font: 500 15px/1.1 var(--font-mono);
+  color: var(--text-primary);
+}
+
+.models-header-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.models-updated {
+  min-width: 74px;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.models-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--models-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #b7b8bf;
+  font-size: 11px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* A drawn checkbox rather than the browser's default control: the native box
+   renders as a bare white square that matches nothing else in the header.
+   (CSP allows `img-src 'self' data:`, so the tick is an inline SVG.) */
+.models-toggle input {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  flex: none;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.models-toggle input:checked {
+  border-color: var(--models-accent);
+  background-color: var(--models-accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-6'/%3E%3C/svg%3E");
+  background-size: 11px 11px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.models-toggle input:focus-visible {
+  outline: 2px solid var(--models-accent);
+  outline-offset: 2px;
+}
+
+.models-toggle:hover {
+  color: #eeeeef;
+  background: var(--models-panel-hover);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.models-toggle:has(input:checked) {
+  color: #e9e9ee;
+  border-color: rgba(90, 255, 138, 0.4);
+  background: rgba(90, 255, 138, 0.12);
+}
+
+.models-refresh {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #a8a9af;
+  background: transparent;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.models-refresh:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.models-refresh:focus-visible {
+  outline: 2px solid var(--models-accent);
+  outline-offset: 2px;
+}
+
+.models-refresh.is-refreshing svg {
+  animation: models-spin 0.8s linear infinite;
+}
+
+@keyframes models-spin { to { transform: rotate(360deg); } }
+
+.models-main {
+  width: min(1240px, calc(100% - 24px));
+  margin: 0 auto;
+  padding: 8px 0 22px;
+}
+
+.models-subtabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  width: fit-content;
+  margin: 14px auto 18px;
+  padding: 3px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-pill);
+  background: var(--bg-secondary);
+}
+
+.models-subtab {
+  min-height: 28px;
+  padding: 3px 13px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  font: 500 12px/1.4 var(--font-sans);
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+
+.models-subtab:hover { color: var(--text-primary); }
+.models-subtab.is-active,
+.models-subtab.active {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.models-subtab:focus-visible {
+  outline: 2px solid var(--models-accent);
+  outline-offset: 2px;
+}
+
+.models-pane[hidden],
+#models-benchmark-actions[hidden],
+#models-local-actions[hidden] { display: none !important; }
+
+
+.models-hero {
+  text-align: center;
+  padding: 0 12px;
+}
+
+.models-hero-label,
+.models-hero-subtitle {
+  color: #a0a1a8;
+  font-size: 12px;
+  letter-spacing: 0.01em;
+}
+
+.models-hero-subtitle {
+  margin: 0 auto;
+  max-width: 640px;
+  line-height: 1.55;
+}
+
+.models-hero h1 {
+  margin: 8px 0 6px;
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.models-kpis {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin-top: 22px;
+  padding: 6px 0;
+  border: 1px solid var(--models-border);
+  border-radius: 14px;
+  background: var(--models-panel);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.08);
+}
+
+.models-kpi {
+  min-width: 0;
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.models-kpi + .models-kpi { border-left: 1px solid var(--models-border); }
+
+.models-kpi strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #eeeeef;
+  font-size: clamp(15px, 1.4vw, 20px);
+  line-height: 1.2;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.models-kpi span {
+  display: block;
+  margin-top: 4px;
+  color: #96979e;
+  font-size: 11px;
+}
+
+.models-status {
+  margin-top: 14px;
+  padding: 11px 14px;
+  border: 1px solid rgba(231, 76, 60, 0.28);
+  border-radius: 9px;
+  color: #ef9a90;
+  background: rgba(231, 76, 60, 0.08);
+  font-size: 12px;
+  text-align: center;
+}
+
+#models-app.is-loading .models-main { opacity: 0.72; }
+
+/* ── Empty / error state ─────────────────────────────────────────────── */
+
+.models-empty {
+  margin-top: 18px;
+  padding: 18px 20px 20px;
+  border-color: var(--border-color);
+  background: var(--models-panel);
+}
+
+.models-empty h2 {
+  margin: 0 0 8px;
+  color: #f0f1f3;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.models-empty-body {
+  margin: 0 0 10px;
+  color: #b7b8bf;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.models-empty-steps {
+  margin: 0 0 10px;
+  padding-left: 20px;
+  color: #c9c9cf;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.models-empty-steps code,
+.models-empty-note code {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 3px 7px;
+  border: 1px solid var(--models-border);
+  border-radius: 6px;
+  background: #141416;
+  color: #d8d8dc;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  word-break: break-all;
+}
+
+.models-empty-steps a {
+  color: var(--models-accent);
+}
+
+.models-empty-note {
+  margin: 0;
+  color: #96979e;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+/* ── Legend key ─────────────────────────────────────────────────────── */
+
+.models-legend-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+  margin: 18px 0 2px;
+  padding: 0 4px;
+  color: #b7b8bf;
+  font-size: 11px;
+}
+
+.models-legend-key-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.models-legend-key-item i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.models-legend-key-item i.is-enabled {
+  background: var(--models-enabled);
+  box-shadow: 0 0 0 2px rgba(142, 224, 176, 0.22);
+}
+
+/* Enabled through an approximate join (display/alias/reordered tokens): the
+   same hue, hollowed out, so it reads as "probably this model". */
+.models-legend-key-item i.is-soft {
+  background: transparent;
+  border: 1px dashed var(--models-enabled);
+}
+
+.models-legend-key-item i.is-plain {
+  background: #3a3a3f;
+}
+
+.models-legend-key-note { color: #7d7e86; }
+
+/* ── Chart panes ────────────────────────────────────────────────────── */
+
+.models-panel {
+  border: 1px solid var(--models-border);
+  border-radius: 16px;
+  background: var(--models-panel);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.06);
+}
+
+.models-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.models-panel h2 {
+  color: #ededee;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.models-chart-panel {
+  margin-top: 14px;
+  padding: 14px 16px 12px;
+}
+
+.models-chart-panel .models-panel-header {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.models-panel-heading h2 { margin: 0; }
+
+.models-chart-subtitle {
+  margin: 3px 0 0;
+  color: #96979e;
+  font-size: 11px;
+}
+
+.models-chart-meta {
+  margin-top: 6px;
+  color: #7d7e86;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.models-chart-scroll {
+  margin-top: 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.models-chart {
+  min-height: 340px;
+}
+
+.models-chart svg { display: block; }
+
+.models-chart-empty {
+  color: #7d7e86;
+  font-size: 13px;
+  padding: 24px 0;
+  text-align: center;
+}
+
+/* Clearance under the chart: the bar strip's rotated labels used to run right
+   down into this provider-count row. The SVG now sizes its own bottom margin
+   to the labels, and this keeps a visible gap between the two regardless. */
+.models-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--models-border);
+  color: #b7b8bf;
+  font-size: 11px;
+}
+
+.models-chart-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
+.models-chart .models-bar { transition: opacity 0.12s; }
+
+/* Approximate ("soft") enabled match: the dashed marker plus a slightly muted
+   bar, so an alias guess never renders identically to an exact-slug hit. */
+.models-chart .models-bar.is-soft { opacity: 0.78; }
+
+/* The same data as the SVG, exposed to assistive tech only. */
+.models-chart-table-wrap {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.models-chart-table {
+  border-collapse: collapse;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.models-chart-table th,
+.models-chart-table td {
+  padding: 2px 6px;
+  text-align: left;
+}
+
+/* ── Footer credit (required by the Artificial Analysis Free tier) ──── */
+
+.models-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
+  margin-top: 18px;
+  padding: 12px 4px 0;
+  border-top: 1px solid var(--models-border);
+}
+
+.models-attribution {
+  color: #c9c9cf;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.models-attribution:hover { color: #fff; }
+
+.models-footer-note {
+  color: #7d7e86;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+@media (max-width: 1060px) {
+  .models-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .models-kpi:nth-child(4) { border-left: 0; }
+  .models-kpi:nth-child(n + 4) { border-top: 1px solid var(--models-border); }
+}
+
+@media (max-width: 768px) {
+  .models-header { min-height: 52px; padding: 10px 16px; flex-wrap: wrap; }
+  .models-product-mark { width: 36px; height: 36px; }
+  .models-updated { display: none; }
+  .models-main { width: min(100% - 24px, 720px); padding-top: 16px; }
+  .models-hero h1 { font-size: clamp(36px, 12vw, 52px); }
+  .models-kpis { margin-top: 18px; }
+  .models-chart-panel { padding: 12px 12px 10px; }
+  .models-header-actions { gap: 6px; }
+}
+
+@media (max-width: 520px) {
+  .models-product-copy small { font-size: 10px; }
+  .models-product-copy > span { font-size: 13px; }
+  .models-main { width: min(100% - 20px, 480px); }
+  .models-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .models-kpi:nth-child(3) { border-left: 0; }
+  .models-kpi:nth-child(n + 3) { border-top: 1px solid var(--models-border); }
+  .models-toggle span { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .models-chart .models-bar { transition: none; }
+  .models-refresh.is-refreshing svg { animation: none; }
+}
+
+/* ── control bar, views and popovers ──────────────────────────────────────
+ *
+ * The page ships three views (Pareto scatter, bar charts, table) behind one
+ * toolbar. Every rule below styles markup models.html already shipped.
+ *
+ * `display` beats the `hidden` attribute, so every container that gets a
+ * display value here repeats an explicit `[hidden] { display: none; }` —
+ * without it a toggled-off view or popover stays on screen. */
+
+.models-view[hidden],
+.models-popover[hidden],
+.models-local-unmatched[hidden],
+.models-why[hidden] { display: none !important; }
+
+.models-controlbar {
+  width: 100%;
+  margin: 10px 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* The active-filter summary is a badge, not a floating fragment of text. */
+.models-controls-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--models-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #9a9ba3;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  margin-right: auto;
+}
+
+.models-controls-meta::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--models-accent);
+  flex: none;
+}
+
+.models-controls-meta:empty { display: none; }
+
+.models-viewswitch {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  border: 1px solid var(--models-border);
+  border-radius: 10px;
+  background: var(--models-panel);
+}
+
+.models-viewswitch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #a6a7ae;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.models-viewswitch-btn:hover { background: var(--models-panel-hover); color: #e9e9ee; }
+.models-viewswitch-btn.is-active,
+.models-viewswitch-btn[aria-pressed="true"] {
+  background: rgba(90, 255, 138, 0.16);
+  color: var(--accent);
+  border: 1px solid rgba(90, 255, 138, 0.35);
+  font-weight: 600;
+}
+.models-viewswitch-btn:focus-visible,
+.models-control-btn:focus-visible,
+.models-icon-btn:focus-visible,
+.models-preset-btn:focus-visible,
+.models-link-btn:focus-visible {
+  outline: 2px solid var(--models-accent);
+  outline-offset: 2px;
+}
+
+.models-control-btn,
+.models-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--models-border);
+  border-radius: 10px;
+  background: var(--models-panel);
+  color: #c9c9cf;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.models-icon-btn { padding: 6px; }
+.models-control-btn:hover,
+.models-icon-btn:hover { background: var(--models-panel-hover); color: #e9e9ee; }
+.models-control-btn[aria-expanded="true"],
+.models-icon-btn[aria-expanded="true"] { border-color: var(--models-accent); color: #e9e9ee; }
+
+/* Popovers sit in normal flow directly under the toolbar, right-aligned —
+ * no absolute positioning to drift out of the scroll container. */
+/* Lifted clearly off the near-black canvas: a brighter hairline, a hard
+   contact shadow and a soft cast one. The old single soft shadow left the
+   panel edge indistinguishable from the background. */
+.models-popover {
+  display: block;
+  width: min(100%, 470px);
+  margin: 0 0 10px auto;
+  padding: 12px 14px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 14px;
+  background: var(--models-panel);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 2px 6px rgba(0, 0, 0, 0.5),
+    0 26px 64px rgba(0, 0, 0, 0.62);
+}
+
+.models-popover-small { width: min(100%, 340px); }
+
+.models-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.models-popover-head h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #a6a7ae;
+}
+
+.models-popover-close {
+  border: 0;
+  background: transparent;
+  color: #7d7e86;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.models-popover-close:hover { color: #e9e9ee; }
+
+.models-popover-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.models-select-search,
+.models-select-provider {
+  flex: 1 1 140px;
+  min-width: 0;
+  padding: 6px 9px;
+  border: 1px solid var(--models-border);
+  border-radius: 9px;
+  background: var(--models-bg);
+  color: #e9e9ee;
+  font: inherit;
+  font-size: 12px;
+}
+.models-select-search:focus-visible,
+.models-select-provider:focus-visible { outline: 2px solid var(--models-accent); outline-offset: 1px; }
+
+.models-select-provider-label { color: #7d7e86; font-size: 11px; }
+
+.models-preset-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+
+.models-preset-btn {
+  padding: 4px 9px;
+  border: 1px solid var(--models-border);
+  border-radius: 999px;
+  background: var(--models-bg);
+  color: #c9c9cf;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.models-preset-btn:hover { background: var(--models-panel-hover); color: #e9e9ee; }
+
+.models-select-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 6px;
+  color: #7d7e86;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* "Select all Clear" read as one string: two buttons need a gap AND a rule
+   between them to be two controls. */
+.models-select-summary-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.models-action-sep {
+  width: 1px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.models-link-btn {
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--models-accent);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 7px;
+}
+.models-link-btn:hover {
+  border-color: var(--models-border);
+  background: rgba(255, 255, 255, 0.05);
+  text-decoration: none;
+}
+
+/* The wrapper owns the bottom fade. A scroll box whose max-height is not an
+   exact multiple of the row height clips its last row through the glyphs; the
+   fade makes the boundary read as "more below" instead of as a slice. */
+.models-select-listwrap {
+  position: relative;
+  padding-bottom: 2px;
+}
+
+.models-select-listwrap::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 10px;
+  bottom: 0;
+  height: 22px;
+  pointer-events: none;
+  background: linear-gradient(to top, var(--models-panel) 12%, rgba(29, 29, 31, 0));
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.models-select-list {
+  /* Rows are a fixed height now (one line + one meta line), so an exact
+     multiple of that height lands the clip BETWEEN rows. */
+  --models-row-h: 44px;
+  max-height: min(calc(var(--models-row-h) * 7), 38vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-right: 8px;
+  padding-bottom: 10px;
+  scroll-padding-block-end: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.models-select-list::-webkit-scrollbar { width: 8px; }
+.models-select-list::-webkit-scrollbar-track { background: transparent; }
+.models-select-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  border: 2px solid var(--models-panel);
+}
+.models-select-list::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.26); }
+
+.models-select-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--models-row-h, 44px);
+  padding: 5px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #d5d5db;
+  min-width: 0;
+}
+.models-select-item:hover { background: var(--models-panel-hover); }
+
+/* The checkbox used to sit flush against the provider dot. It now has its own
+   margin on both sides, and the dot matches the chart's circular marks. */
+.models-select-item input {
+  accent-color: var(--models-accent);
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin: 0 2px 0 0;
+}
+
+.models-select-item .models-provider-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+  box-shadow: 0 0 0 2px var(--models-panel);
+}
+
+.models-select-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* ONE line, ellipsed. The full AA name wrapped and stranded "Fallback)" on a
+   line of its own; it lives in the row's title tooltip instead. */
+.models-select-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.models-tag {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #a6a7ae;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.models-select-item small {
+  color: #7d7e86;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.models-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 4px;
+  font-size: 12px;
+  color: #d5d5db;
+  cursor: pointer;
+}
+.models-check input { accent-color: var(--models-accent); margin-top: 2px; flex: none; }
+.models-check span { display: flex; flex-direction: column; }
+.models-check small { color: #7d7e86; font-size: 10.5px; margin-top: 2px; }
+
+/* ── pareto scatter ───────────────────────────────────────────────────── */
+
+.models-chart-pareto { width: 100%; }
+.models-chart-pareto svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+.models-pareto-panel .models-chart-scroll { overflow: visible; }
+
+.models-point { transition: opacity 120ms ease; }
+.models-chart-pareto:hover .models-point { opacity: 0.55; }
+.models-chart-pareto .models-point:hover { opacity: 1; }
+
+/* The legend chip IS the mark: a filled circle with the same surface ring the
+   scatter points carry. A flat square shared nothing with the plot it labels. */
+.models-pareto-legend { flex-wrap: wrap; gap: 6px 14px; }
+
+.models-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.models-pareto-legend .models-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 0;
+  /* The same 2px surface ring the scatter marks carry. */
+  box-shadow: 0 0 0 2px var(--models-panel);
+}
+
+.models-legend-count {
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #9a9ba3;
+  font-size: 10px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.models-legend-key-item i.is-enabled,
+.models-legend-key-item i.is-soft {
+  border-radius: 50%;
+}
+
+/* The local mark is a diamond on the chart, so it is a diamond here too. */
+.models-legend-key-item i.is-local {
+  background: transparent;
+  border: 1px solid var(--models-enabled);
+  border-radius: 2px;
+  box-shadow: none;
+  transform: rotate(45deg);
+}
+
+/* Label text is painted with a halo (SVG paint-order) so the dashed frontier
+   line cannot strike through it; the marks own the hover, not the text. */
+.models-point-label,
+.models-bar-label { pointer-events: none; }
+.models-bar-label { pointer-events: auto; }
+
+/* Off-screen text metric probe: real widths for the de-collision boxes. */
+.models-measure {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 10px;
+  height: 10px;
+  overflow: visible;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* "Why these models?" is a real toggle chip, not a browser disclosure marker:
+   `list-style: none` alone still leaves a ▸ glyph that matches nothing else on
+   the page. `display: inline-flex` on the summary removes the marker outright
+   in every engine, and the chevron is the same icon the toolbar buttons use. */
+.models-why { margin-top: 12px; }
+
+.models-why-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  border: 1px solid var(--models-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #a6a7ae;
+  font-size: 11px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: background 120ms ease, color 120ms ease;
+}
+.models-why-toggle::-webkit-details-marker { display: none; }
+.models-why-toggle::marker { content: ""; }
+.models-why-toggle:hover { background: var(--models-panel-hover); color: #e9e9ee; }
+.models-why-toggle:focus-visible {
+  outline: 2px solid var(--models-accent);
+  outline-offset: 2px;
+}
+
+.models-why-chevron {
+  flex: none;
+  color: #7d7e86;
+  transform: rotate(-90deg);
+  transition: transform 140ms ease;
+}
+.models-why[open] .models-why-chevron { transform: rotate(0deg); }
+
+.models-why-body {
+  margin: 8px 0 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--models-border);
+  color: #9a9ba3;
+  font-size: 11px;
+  line-height: 1.55;
+  max-width: 78ch;
+}
+
+/* Not a comma-separated run-on in low-contrast grey: a label, then one chip per
+   model, so the names are scannable and the wrap points are between chips. */
+.models-local-unmatched {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.models-note-label {
+  color: #9a9ba3;
+  margin-right: 2px;
+}
+
+.models-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid var(--models-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #c9c9cf;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.models-local-deployments[hidden] { display: none; }
+.models-local-deployments { margin-bottom: 16px; padding: 16px 18px; }
+.models-local-deployments .models-panel-header { margin-bottom: 12px; }
+.models-local-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.models-local-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 12px;
+  border: 1px solid var(--models-border);
+  border-radius: 8px;
+  background: rgba(63, 185, 80, 0.04);
+  min-width: 0;
+}
+.models-local-name { color: #e6edf3; font-size: 12px; overflow-wrap: anywhere; }
+.models-local-name i { color: #5aff8a; font-style: normal; margin-right: 7px; }
+.models-local-benchmark { color: #9a9ba3; font-size: 11px; }
+
+/* ── table view ───────────────────────────────────────────────────────── */
+
+/* Accessible-only text (the table view's heading — the selected [Table] button
+   is the visible title). */
+.models-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The count is the caption: anchored to the table's left edge, immediately
+   above it, rather than floating free at the far right of an empty header. */
+.models-table-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.models-table-count {
+  color: #9a9ba3;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.models-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--models-border);
+  border-radius: 10px;
+}
+
+.models-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.models-data-table th,
+.models-data-table td {
+  padding: 7px 10px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  white-space: nowrap;
+  color: #c9c9cf;
+}
+
+/* Numeric columns are right-aligned with tabular figures so the decimal points
+   line up down the column. */
+.models-data-table th.models-num,
+.models-data-table td.models-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.models-data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--models-panel);
+  color: #a6a7ae;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--models-border);
+}
+
+/* Zebra striping + a hover row: plain text on a black canvas gave the eye
+   nothing to track along a 10-column row. */
+.models-data-table tbody tr:nth-child(even) td,
+.models-data-table tbody tr:nth-child(even) th { background: rgba(255, 255, 255, 0.032); }
+.models-data-table tbody tr:last-child td,
+.models-data-table tbody tr:last-child th { border-bottom: 0; }
+.models-data-table tbody tr:hover td,
+.models-data-table tbody tr:hover th { background: var(--models-panel-hover); }
+.models-data-table tr.is-enabled th[scope="row"] { color: var(--models-enabled); }
+
+@media (max-width: 768px) {
+  .models-subtabs { width: 100%; }
+  .models-subtab { flex: 1; }
+  .models-controlbar { gap: 6px; }
+  .models-controls-meta { width: 100%; margin-right: 0; }
+  .models-viewswitch-label { display: none; }
+  .models-popover { width: 100%; }
+  .models-select-list { max-height: 260px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .models-viewswitch-btn,
+  .models-control-btn,
+  .models-icon-btn,
+  .models-point { transition: none; }
+}

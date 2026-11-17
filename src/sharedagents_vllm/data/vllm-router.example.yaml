@@ -1,0 +1,47 @@
+# Packaged default: empty configurable lists.
+# Copy to ~/.sharedagents/vllm-router.yaml (or /var/lib/sharedagents/vllm-router.yaml)
+# and add the pools / providers you actually run. API keys stay in the
+# environment (api_key_env) — never put secrets here.
+#
+# Example (uncomment and edit):
+#
+# external_providers:
+#   cloud-backup:
+#     base_url: https://openrouter.ai/api/v1
+#     api_key_env: OPENROUTER_API_KEY
+#     model: vendor/model-id
+#     max_active_requests: 10
+#     timeout_seconds: 120
+# pools:
+#   local-llm:
+#     kind: llm
+#     max_active_requests: 4
+#     fallbacks:
+#       - external: cloud-backup
+#     replicas:
+#       - {name: gpu-a, url: http://127.0.0.1:8000, max_active: 4}
+
+bind: 127.0.0.1
+port: 8000
+health_check_seconds: 10
+# Write and connection-pool waits only; not an overall request deadline.
+write_pool_timeout_seconds: 3600
+connect_timeout_seconds: 5
+read_timeout_seconds: 120
+first_token_timeout_seconds: 300
+# A replica that is byte-silent mid-stream is only stalled if its engine is
+# idle too: vLLM sends nothing while it generates an array/object tool-call
+# argument. Every generation_probe_seconds the router reads the replica's
+# vllm:generation_tokens_total; while it advances the stream is kept open with
+# SSE keep-alive comments, for at most stream_silence_cap_seconds of silence.
+generation_probe_seconds: 15
+stream_silence_cap_seconds: 900
+failure_cooldown_seconds: 120
+session_ttl_seconds: 900
+
+backpressure:
+  reject_status: 503
+  retry_after_seconds: 5
+
+external_providers: {}
+pools: {}

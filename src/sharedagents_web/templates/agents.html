@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>{{ site_title }} · agent monitor</title>
+<meta name="sharedagents-base" content="{{ base }}">
+<link rel="stylesheet" href="{{ base }}/static/style.css?v={{ asset_rev('style.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/menu.css?v={{ asset_rev('menu.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/agents.css?v={{ asset_rev('agents.css') }}">
+{% include "_ui_zoom.html" %}
+</head>
+<body class="monitor-body">
+{% set active = 'agents' %}
+{% include "_menu.html" %}
+{% from "_menu.html" import menu_button %}
+<div id="monitor">
+  <header class="mon-header">
+    {{ menu_button() }}
+    <a class="mon-logo" href="{{ base }}/" title="Back to chat">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+        <path d="M2 17l10 5 10-5"/>
+        <path d="M2 12l10 5 10-5"/>
+      </svg>
+      <span>{{ site_title }}</span>
+    </a>
+    <div class="mon-title">
+      <h1>Agents</h1>
+      <span id="mon-conn" class="mon-conn mon-conn-unknown" title="Live stream status"></span>
+    </div>
+    <div class="mon-header-right">
+      <div id="mon-totals" class="mon-totals"></div>
+      <details id="mon-filter-card" class="mon-filter-card">
+        <summary class="mon-filter-summary" title="Show / hide filters">
+          <span class="mfc-icon" aria-hidden="true">⛃</span>
+          <span class="mfc-label">Filters</span>
+          <span id="mon-filter-active" class="mfc-active"></span>
+        </summary>
+        <div class="mon-filters" aria-label="Filters">
+          <input type="search" id="mon-search" class="mon-search" placeholder="filter agent / title / hash…"
+                 title="Filter sessions by agent name, title, or hash" autocomplete="off" spellcheck="false">
+          <label class="mon-field" title="Group the session tree by this dimension">
+            <span>group by</span>
+            <select id="mon-groupby" class="mon-window">
+              <option value="agent">agent</option>
+              <option value="model">model</option>
+              <option value="engine">engine</option>
+              <option value="state">state</option>
+              <option value="none">none</option>
+            </select>
+          </label>
+          <label class="mon-field" title="Show at most this many most-recent sessions (sqlite)">
+            <span>last</span>
+            <select id="mon-limit" class="mon-window">
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+              <option value="500">500</option>
+            </select>
+          </label>
+          <label class="mon-field" title="Hide sessions whose last activity is older than this">
+            <span>seen ≤</span>
+            <select id="mon-window" class="mon-window">
+              <option value="0">any</option>
+              <option value="300">5m</option>
+              <option value="900">15m</option>
+              <option value="3600">1h</option>
+              <option value="21600">6h</option>
+              <option value="86400">24h</option>
+            </select>
+          </label>
+          <!-- Value-level multi-select: restrict to chosen agents/models/engines/
+               states. Options are rebuilt from the live tree. "All" = no
+               restriction. The STATE group replaces the old "show idle" toggle —
+               idle is shown by default; deselect it to hide idle sessions. -->
+          <div id="mon-fg-groups" class="mon-fg-groups" aria-label="Value filters">
+            <fieldset id="mon-fg-agent" class="mon-fg">
+              <legend>agent</legend>
+              <label class="mon-fg-all"><input type="checkbox" class="mon-fg-cb" data-fg="agent" value="__all__" checked> All</label>
+            </fieldset>
+            <fieldset id="mon-fg-model" class="mon-fg">
+              <legend>model</legend>
+              <label class="mon-fg-all"><input type="checkbox" class="mon-fg-cb" data-fg="model" value="__all__" checked> All</label>
+            </fieldset>
+            <fieldset id="mon-fg-engine" class="mon-fg">
+              <legend>engine</legend>
+              <label class="mon-fg-all"><input type="checkbox" class="mon-fg-cb" data-fg="engine" value="__all__" checked> All</label>
+            </fieldset>
+            <fieldset id="mon-fg-state" class="mon-fg">
+              <legend>state</legend>
+              <label class="mon-fg-all"><input type="checkbox" class="mon-fg-cb" data-fg="state" value="__all__" checked> All</label>
+            </fieldset>
+          </div>
+        </div>
+      </details>
+      <span id="mon-updated" class="mon-updated" title="Last update"></span>
+    </div>
+  </header>
+
+  <!-- Per-agent rollup pills -->
+  <section id="mon-summary" class="mon-summary" aria-label="Per-agent summary"></section>
+
+  <!-- The live tree -->
+  <main id="mon-tree" class="mon-tree" aria-label="Agent session tree">
+    <div id="mon-empty" class="mon-empty">Waiting for live agent activity…</div>
+  </main>
+
+  <footer class="mon-legend" aria-label="Status legend">
+    <span class="lg"><i class="dot st-prompting"></i>prompting</span>
+    <span class="lg"><i class="dot st-streaming"></i>streaming</span>
+    <span class="lg"><i class="dot st-tool_running"></i>tool</span>
+    <span class="lg"><i class="dot st-waiting"></i>waiting</span>
+    <span class="lg"><i class="dot st-compacting"></i>compacting</span>
+    <span class="lg"><i class="dot st-paused"></i>paused</span>
+    <span class="lg"><i class="dot st-error"></i>error</span>
+    <span class="lg"><i class="dot st-needs_input"></i>needs input</span>
+    <span class="lg"><i class="dot st-idle"></i>idle</span>
+  </footer>
+</div>
+<script src="{{ base }}/static/nav.js?v={{ asset_rev('nav.js') }}"></script>
+<script src="{{ base }}/static/agents.js?v={{ asset_rev('agents.js') }}"></script>
+</body>
+</html>

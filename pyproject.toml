@@ -1,0 +1,328 @@
+# pyproject.toml — packaging spec for sharedagents.
+#
+# Makes the repo `pip install`-able. Published on PyPI as `sharedagents`
+# (`pip install sharedagents`).
+#
+# Layout: src-layout with sibling top-level packages (sharedagents_core,
+# sharedagents_gateway, sharedagents_web, …) plus the thin `sharedagents` umbrella that holds
+# the cross-package CLI glue (python -m sharedagents.serve) — not a single namespace
+# package. Memory is no longer a top-level
+# sibling: it is a builtin MCP capability and lives under
+# `sharedagents_mcp.memory` (server) / `sharedagents_mcp.memory.engine` (engine),
+# relocated in Phase B of spec/memory-as-builtin-mcp.md. The
+# `packages.find` block below globs `sharedagents_*`; that pattern also matches
+# dotted subpackage names (`sharedagents_mcp.memory`, `sharedagents_mcp.memory.engine`),
+# so the relocated subpackages are discovered with no include-list change
+# and a new sibling package is still picked up without editing this file.
+#
+# Runtime deps are kept byte-for-byte in sync with src/requirements.txt
+# (the launcher still sha1's that file for its venv-bootstrap path).
+
+[build-system]
+# setuptools>=77 for the PEP 639 ``license = "<SPDX>"`` string form;
+# anything older treats it as the deprecated TOML-table shape and
+# (from 2027-02) will refuse the build outright.
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sharedagents"
+version = "1.0.0"
+description = "Local AI agent platform with full under-the-hood visibility — multi-agent orchestrator, web UI, channels, pluggable engines."
+readme = "README.md"
+requires-python = ">=3.10"
+# PEP 639 SPDX expression — not the deprecated ``{ text = "MIT" }``
+# table. Both files ship in the sdist and the wheel's licenses/ dir.
+license = "MIT"
+license-files = ["LICENSE", "THIRD_PARTY_LICENSES.md"]
+# Neutral project identity — no personal handle/email baked into the
+# public PyPI metadata. Set a real maintainer here before the first
+# upload if you want one.
+authors = [{ name = "sharedagents.ai" }]
+keywords = ["llm", "tui", "vllm", "agent", "acp", "sovereign-inference"]
+# No ``License ::`` classifier — deprecated in favour of the SPDX
+# ``license`` field above, and setuptools>=77 errors on having both.
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+# LEAN CORE — chat + TUI + agent gateway + MCP client + memory. Kept
+# deliberately small and broadly wheel-available so `pip install sharedagents`
+# resolves fast on ANY supported Python (incl. brand-new 3.14). The
+# heavy doc/media tooling (markitdown→magika/pandas/onnxruntime/azure,
+# yt-dlp, ffmpeg, trafilatura) lives in the `full` extra below — those
+# pins are what break resolution on the newest interpreters.
+dependencies = [
+    # TUI / HTTP / rendering
+    "textual>=0.85",
+    "httpx>=0.27",
+    "aiohttp>=3.9",
+    "rich>=13.0",
+    # imported at module level by sharedagents_core.decision (TUI startup path)
+    "requests>=2.32",
+    # OpenAI-compatible client + embeddings
+    "openai>=1.0",
+    # Memory / vector
+    "sqlite-vec>=0.1.6",
+    # MCP client (servers themselves are in the `full` extra)
+    "mcp>=1.0",
+    # ACP (Agent Client Protocol) — runtime, not just dev
+    "agent-client-protocol>=0.9",
+    # Daemon-side ASGI stack
+    "hypercorn>=0.17",
+    "starlette>=0.40",
+    "sse-starlette>=2.1",
+    # Exact prompt-token counts for self-served models (sharedagents_model.token_count);
+    # without it the budget falls back to a character estimate.
+    "tokenizers>=0.20",
+]
+
+[project.optional-dependencies]
+# Doc/media tooling + the bundled MCP servers. Opt-in via
+# `pip install sharedagents[full]`. Heavy and version-fragile across Python
+# releases (markitdown pins old magika; onnxruntime/pandas/azure), which
+# is exactly why it is NOT in the lean core. The first-run wizard only
+# seeds the youtube / markitdown MCP servers when these are importable,
+# so a lean install simply runs without them.
+full = [
+    # web-fetch content extraction
+    "trafilatura>=2.0",
+    # markitdown — PDF/DOCX/etc → markdown, surfaced via markitdown-mcp
+    "markitdown[pdf]>=0.0.1a3",
+    "markitdown-mcp>=0.0.1a3",
+    # bundled static ffmpeg — Telegram voice-note transcode + youtube audio
+    "imageio-ffmpeg>=0.5.1",
+    # YouTube ingestion for the bundled youtube MCP server
+    "yt-dlp>=2024.10.7",
+    "youtube-transcript-api>=1.0",
+]
+# Browser chat frontend (sharedagents_web). The package code + its templates/
+# static asset trees ALWAYS ship in the wheel (see package-data below);
+# this extra only adds the runtime deps needed to actually SERVE it, so a
+# lean `pip install sharedagents` stays small while `pip install sharedagents[web]`
+# (or `sharedagents web start`) can launch the UI with no separate checkout.
+web = [
+    "flask>=3.1.3",
+    "gunicorn>=23.0; sys_platform != \"win32\"",
+    "waitress>=3",
+    "keyring>=25",
+]
+# Local Fast Whisper STT server (sharedagents_telegram.serve_stt) — the DISTRIBUTED
+# DEFAULT speech-to-text. Optional: a lean install using a REMOTE STT endpoint
+# (e.g. a local Qwen3-ASR-1.7B box) configured in ~/.sharedagents/config.json does
+# not need it. faster-whisper ships CPU wheels (CTranslate2), so `int8` on the
+# `base` model runs with no GPU. Install with `pip install sharedagents[stt]`.
+stt = [
+    "faster-whisper>=1.0,<2",
+]
+# Native Amazon Bedrock Converse transport (sharedagents_gateway.bedrock_worker).
+# Optional: a lean install that never selects a Bedrock model row does not
+# need the AWS SDK — the boto3 import is lazy and a Bedrock row on an
+# uninstalled SDK fails with a clear install error. Bedrock API-key auth
+# relies on AWS_BEARER_TOKEN_BEDROCK support, verified with the 1.43.101
+# boto3/botocore pair.
+# Install with `pip install sharedagents[bedrock]`.
+bedrock = [
+    "boto3>=1.43.101,<2",
+]
+# Linked-device WhatsApp self-chat channel (sharedagents_whatsapp). neonize wraps the Go
+# whatsmeow library; its wheel bundles the matching .so — keep the pin EXACT or it
+# downloads a binary from GitHub at import time. Needs system libmagic (libmagic1).
+# Install with `pip install sharedagents[whatsapp]`, then `sharedagents whatsapp link`.
+# neonize 0.5.2 imports typing.Self, so the channel needs Python 3.11+.
+whatsapp = [
+    "neonize==0.5.2; python_version >= '3.11'",
+]
+# Realtime voice server (sharedagents_realtime) — audio framing needs numpy.
+# Install with `pip install sharedagents[realtime]`.
+realtime = [
+    "numpy>=1.24",
+]
+# Optional local vLLM replica router (python -m sharedagents_vllm).
+vllm-router = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "httpx>=0.27",
+    "pyyaml>=6.0",
+    "python-multipart>=0.0.9",
+]
+# Docs site toolchain — `pip install -e '.[docs]'` then `mkdocs build`.
+docs = [
+    "mkdocs-material>=9.5",
+]
+# Test + lint toolchain — `pip install -e '.[dev]'`.
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-xdist>=3.5",
+    "pytest-timeout>=2.3",
+    # Dev SDLC code gates fail closed when no Python language server exists.
+    # Keep the tool in the same extra the isolated Dev image installs so a
+    # worker never has to bootstrap it inside a feature turn.
+    "basedpyright>=1.23",
+    "import-linter>=2.0",
+    # Lint + format; keep in step with .pre-commit-config.yaml and CI.
+    "ruff==0.17.5",
+    "jsonschema>=4",
+    "telethon>=1.36",
+    "gTTS>=2.4",
+    # WhatsApp linked-device transport (same pin as the `whatsapp` extra).
+    "neonize==0.5.2; python_version >= '3.11'",
+    # sharedagents_realtime tests (same pin as the `realtime` extra).
+    "numpy>=1.24",
+]
+
+[project.urls]
+Homepage = "https://github.com/sharedagents-ai/sharedagents"
+Documentation = "https://docs.sharedagents.ai/"
+Repository = "https://github.com/sharedagents-ai/sharedagents"
+Issues = "https://github.com/sharedagents-ai/sharedagents/issues"
+Changelog = "https://github.com/sharedagents-ai/sharedagents/blob/main/CHANGELOG.md"
+
+# `sharedagents` on the PATH after install — same entry point the stale
+# egg-info recorded and the same `main()` the ./sharedagents launcher execs
+# via `python -m sharedagents_tui`.
+[project.scripts]
+sharedagents = "sharedagents_tui.app:main"
+# Browser chat frontend (needs the `[web]` extra installed to run). Also
+# reachable as `python -m sharedagents_web` and `sharedagents web start`.
+sharedagents-web = "sharedagents_web.cli:main"
+# Local Fast Whisper STT server (needs the `[stt]` extra installed to run).
+# Also reachable as `python -m sharedagents_telegram.serve_stt`.
+sharedagents-stt = "sharedagents_telegram.serve_stt:main"
+# WhatsApp self-chat channel service (needs the `[whatsapp]` extra and a linked
+# device — `sharedagents whatsapp link`). Also reachable as `python -m sharedagents_whatsapp`.
+sharedagents-whatsapp = "sharedagents_whatsapp.cli:service_main"
+# Optional local vLLM replica router (needs the `[vllm-router]` extra).
+sharedagents-vllm = "sharedagents_vllm.cli:main"
+# Run the whole stack (orchestrator + gateway + WebUI) as one command. The WebUI
+# needs the `[web]` extra; `--no-web` runs the two backend roles. Also reachable
+# as `python -m sharedagents.serve` and `python -m sharedagents`.
+sharedagents-serve = "sharedagents.serve:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+# `sharedagents` is the thin umbrella package (python -m sharedagents.serve); the bare name
+# does not match the `sharedagents_*` glob, so it is listed explicitly.
+include = ["sharedagents", "sharedagents_*"]
+
+# Non-.py runtime data that must ride along in the wheel:
+#   - py.typed markers (PEP 561) — only some packages ship one, the
+#     glob silently no-ops where absent.
+#   - builtin_skills/<name>/SKILL.md — skills.py resolves these via
+#     Path(__file__).parent / "builtin_skills", so the tree has to be
+#     present next to the installed package, not just in the repo.
+#   - builtin_commands/<name>.md — file_commands.py resolves these via
+#     Path(__file__).parent / "builtin_commands" (same trick as
+#     builtin_skills), so the bundled `/goal` etc. must ride along too.
+[tool.setuptools.package-data]
+"*" = ["py.typed"]
+"sharedagents_skill.builtin_skills" = ["**/*"]
+"sharedagents_core.builtin_commands" = ["**/*"]
+"sharedagents_core" = ["config.defaults.json"]
+"sharedagents_agent" = ["profile_agents/**/*.md", "agents/data/*"]
+"sharedagents_model" = ["data/*"]
+"sharedagents_gateway" = ["data/*"]
+#   - sharedagents_web/{templates,static,data} — Flask resolves them relative to
+#     the package dir (server.py builds absolute paths from __file__), so the
+#     full asset tree (HTML/CSS/JS + onnxruntime wasm + wakeword models) plus
+#     the bundled models snapshot (data/models_snapshot.json, the fresh-install
+#     fallback when there is no AA key and no cache) must ride in the wheel.
+#     Screenshots were moved out to docs/ to keep the wheel lean.
+"sharedagents_web" = ["templates/**/*", "static/**/*", "data/*", "README.md"]
+"sharedagents_vllm" = ["data/*", "service/*"]
+
+[tool.setuptools.exclude-package-data]
+sharedagents_web = ["static/task_card_collapsed.png", "static/task_card_expanded.png"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+markers = [
+    "e2e: end-to-end tests that need a live running stack",
+    "docker: tests that need Docker / the dev sandbox",
+    "browser: tests that need a real (headed or headless) browser",
+    "slow: tests that take more than a few seconds",
+]
+addopts = "-ra"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_also = [
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "\\.\\.\\.",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+src = ["src", "tests"]
+
+[tool.ruff.format]
+# ruff's defaults (Black-compatible); `ruff format --check` runs in CI.
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade (py310 target)
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+    "C4",  # flake8-comprehensions
+    "D100", # every module carries a docstring
+    "D104", # every package carries a docstring
+]
+ignore = [
+    "E501",   # line length is the formatter's job; what remains is long strings and URLs
+    "B023",   # every hit is a closure invoked within its own loop iteration
+    "B905",   # zip() truncation is intended where used; `strict=False` everywhere is noise
+    "SIM102", # nested `if`s are kept where each condition carries its own comment
+    "SIM105", # explicit `try`/`except`/`pass` is kept over `contextlib.suppress`
+    "SIM108", # a conditional expression is not always clearer than an if/else block
+    "SIM115", # long-lived handles (subprocess logs, lock files) deliberately outlive a `with`
+    "SIM117", # nested `with` blocks are kept where they scope distinct resources
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Lazy re-export shims: `__all__` names resolve through module `__getattr__`.
+"src/sharedagents_agent/tools/impl/delegate.py" = ["F822"]
+"src/sharedagents_core/services.py" = ["F822"]
+# Optional provider hooks are deliberate no-ops, not abstract methods.
+"src/sharedagents_mcp/memory/engine/memory_provider.py" = ["B027"]
+# One-line stubs read better as lambdas in tests.
+"tests/**" = ["E731"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["sharedagents*"]
+combine-as-imports = true
+
+[tool.basedpyright]
+typeCheckingMode = "standard"
+include = ["src"]
+exclude = ["**/__pycache__", ".venv", "build", "dist"]
+reportMissingImports = "warning"
+reportMissingTypeStubs = false

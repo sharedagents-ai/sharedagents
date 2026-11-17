@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>{{ site_title }} · dev</title>
+<meta name="sharedagents-base" content="{{ base }}">
+<meta name="sharedagents-initial-loop" content="{{ initial_loop_id }}">
+<meta name="sharedagents-forge" content="{{ '1' if forge_configured else '0' }}">
+<link rel="stylesheet" href="{{ base }}/static/style.css?v={{ asset_rev('style.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/menu.css?v={{ asset_rev('menu.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/agents.css?v={{ asset_rev('agents.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/loops.css?v={{ asset_rev('loops.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/dev.css?v={{ asset_rev('dev.css') }}">
+{% include "_ui_zoom.html" %}
+</head>
+<body class="monitor-body">
+{% set active = 'dev' %}
+{% include "_menu.html" %}
+{% from "_menu.html" import menu_button %}
+<div id="dev-app">
+  <header class="mon-header loops-header">
+    {{ menu_button() }}
+    <a class="mon-logo" href="{{ base }}/" title="Back to chat">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+        <path d="M2 17l10 5 10-5"/>
+        <path d="M2 12l10 5 10-5"/>
+      </svg>
+      <span>{{ site_title }}</span>
+    </a>
+    <div class="loops-title-block">
+      <div class="mon-title">
+        <h1>Dev</h1>
+        <span id="dev-conn" class="mon-conn mon-conn-unknown" title="Dev API status"></span>
+      </div>
+      <p>From a clear request to a verified delivery.</p>
+    </div>
+    <div class="mon-header-right">
+      <label class="loop-field dev-repo-field" for="dev-repo">
+        <select id="dev-repo" class="loop-session-select" aria-label="Repository"></select>
+      </label>
+      <span id="dev-forge-pill" class="dev-forge-pill" title="Forge API">Forge</span>
+      <button type="button" id="dev-refresh" class="icon-btn" title="Refresh" aria-label="Refresh">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12a9 9 0 1 1-3-6.7"/>
+          <path d="M21 3v6h-6"/>
+        </svg>
+      </button>
+      <span id="dev-updated" class="mon-updated" title="Last update"></span>
+    </div>
+  </header>
+
+  <main class="dev-main">
+    <section class="dev-overview" aria-label="Development progress">
+      <div class="dev-overview-copy">
+        <span class="dev-eyebrow" id="sdlc-attention">Start here</span>
+        <h2 id="sdlc-next-title">What would you like to build?</h2>
+        <p id="sdlc-next-detail">Describe the outcome. Clarify any open questions, then approve the scope and let development run.</p>
+      </div>
+      <ol class="dev-journey" aria-label="Delivery steps">
+        <li data-step="describe"><span>1</span>Describe</li>
+        <li data-step="clarify"><span>2</span>Clarify</li>
+        <li data-step="build"><span>3</span>Build &amp; verify</li>
+        <li data-step="deliver"><span>4</span>Deliver</li>
+      </ol>
+      <p id="sdlc-sync-status" class="dev-sync-status" role="status" aria-live="polite" hidden></p>
+    </section>
+
+    <!-- Keep the lifecycle orientation visible before the working controls.
+         The two figures explain both the phases and how validation maps to
+         verification; hiding them made the simplified tab lose that context.
+         -->
+    <details class="sdlc-cycle-hero" id="sdlc-cycle" open
+             aria-label="The software development life cycle">
+      <summary class="sdlc-cycle-head">
+        <div class="sdlc-cycle-title-row">
+          <h2>How delivery works</h2>
+          <p class="sdlc-cycle-now" id="sdlc-phase-now">Phase &rarr; gate</p>
+        </div>
+        {# Chips live in the summary so they stay up when this card is closed. #}
+        <ol class="sdlc-phase-strip" aria-label="The seven phases">
+          {%- for p in phases %}
+          <li class="sdlc-phase{% if not p.gates %} out{% endif %}"
+              data-phase="{{ p.n }}" data-gates="{{ p.gates | join(' ') }}">
+            <span class="sdlc-phase-n">{{ p.n }}</span>
+            <span class="sdlc-phase-name">{% if p.n == 1 %}Identify{% else %}{{ p.name }}{% endif %}</span>
+          </li>
+          {%- endfor %}
+        </ol>
+      </summary>
+      <p class="sdlc-cycle-lede">
+        Agree on the scope once. One brief combines planning and design, then
+        development builds, tests, and gathers two independent reviews.
+        Each phase reuses the agreed decisions and committed work.
+        Delivery follows your choice: a reviewed
+        pull request, automatic merge, or merge and an authorized deployment.
+        Maintenance starts as a new change against the delivered version.
+      </p>
+      <div class="sdlc-subcards">
+        <details class="sdlc-subcard sdlc-ring" open>
+          <summary>The seven phases</summary>
+          <div class="sdlc-subcard-body">
+            <img class="sdlc-wheel" src="{{ base }}/static/sdlc-wheel.png" width="640" height="640"
+                 alt="The seven phases of the software development life cycle, as a ring:
+                      1 identify and gather requirements, 2 plan, 3 design, 4 implement,
+                      5 test, 6 deploy, 7 maintain.">
+            <ol class="sdlc-phases">
+              {%- for p in phases %}
+              <li class="sdlc-phase{% if not p.gates %} out{% endif %}"
+                  data-phase="{{ p.n }}" data-gates="{{ p.gates | join(' ') }}">
+                <span class="sdlc-phase-n">{{ p.n }}</span>
+                <div class="sdlc-phase-body">
+                  <span class="sdlc-phase-name">{{ p.name }}</span>
+                  <span class="sdlc-phase-gates">
+                    {%- if p.gates %}{{ p.gates | join(' · ') }}
+                    {%- else %}start a follow-up change{% endif %}</span>
+                  <span class="sdlc-phase-note">{{ p.note }}</span>
+                </div>
+              </li>
+              {%- endfor %}
+            </ol>
+          </div>
+        </details>
+        <details class="sdlc-subcard sdlc-vee" open>
+          <summary>Validate once, then verify</summary>
+          <div class="sdlc-subcard-body">
+            <img class="sdlc-vmodel" src="{{ base }}/static/sdlc-vmodel.png"
+                 width="1100" height="668"
+                 alt="The V-model: requirements, specification, architectural design,
+                      detailed design and coding down the left arm, each answered across
+                      the V by unit, integration, system and acceptance testing.">
+            <div class="sdlc-vee-copy">
+              <p class="sdlc-vee-lede">
+                <strong>Validation</strong> happens once: clarify/contract freeze
+                the right condition and the right evidence. Everything after that
+                is <strong>verification</strong> — LSP, driving those evidence
+                lines, and two independent reviewers checking the same evidence.
+                These are the pairs that exist here:
+              </p>
+              <ul class="sdlc-vee-pairs">
+                {%- for v in vee_pairs %}
+                <li>
+                  <span class="sdlc-vee-l">{{ v.defines }}</span>
+                  <span class="sdlc-vee-arrow" aria-hidden="true">&harr;</span>
+                  <span class="sdlc-vee-r">{{ v.answered_by }}</span>
+                  <span class="sdlc-vee-how">{{ v.how }}</span>
+                </li>
+                {%- endfor %}
+              </ul>
+            </div>
+          </div>
+        </details>
+      </div>
+    </details>
+
+    <div class="dev-workspace">
+    <!-- The run IS the page: one gate per stage, top to bottom.
+         -->
+    <section class="sdlc-flight" aria-label="Change in flight">
+      <div class="sdlc-flight-head">
+        <div class="sdlc-flight-title">
+          <h2 id="sdlc-run-title">New change</h2>
+          <div class="sdlc-flight-meta">
+            <span id="sdlc-run-kind" class="sdlc-ref sdlc-kind-badge" hidden></span>
+            <a id="sdlc-run-chat" class="sdlc-ref sdlc-chat-link" href="#" hidden>Open chat</a>
+            <a id="sdlc-run-issue" class="sdlc-ref" href="#" target="_blank" rel="noopener" hidden></a>
+            <a id="sdlc-run-pr" class="sdlc-ref" href="#" target="_blank" rel="noopener" hidden></a>
+            <code id="sdlc-run-branch" class="sdlc-ref sdlc-ref-plain" hidden></code>
+            <code id="sdlc-run-worktree" class="sdlc-ref sdlc-ref-plain sdlc-ref-wt" hidden></code>
+            {%- for role, short, what in (("generation", "G", "model"), ("validation", "A", "agent and model"), ("verification", "B", "agent and model")) %}
+            <button type="button" id="sdlc-run-role-{{ role }}"
+                    class="sdlc-run-role" data-role-picker="{{ role }}"
+                    aria-haspopup="dialog" aria-expanded="false" aria-controls="amp-dev" hidden>
+              <span aria-hidden="true">{{ short }}</span>
+              <span class="sdlc-run-role-agent"></span>
+              <span class="sr-only">Change {{ {"validation": "verify A", "generation": "orchestrate", "verification": "verify B"}[role] }} {{ what }}</span>
+            </button>
+            {%- endfor %}
+          </div>
+        </div>
+        <span id="sdlc-run-state" class="sdlc-state">idle</span>
+        <button type="button" id="sdlc-new" class="loop-primary-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          <span>New change</span>
+        </button>
+      </div>
+      <aside id="sdlc-jarvis" class="sdlc-jarvis" hidden>
+        <div class="sdlc-jarvis-head">
+          <span class="sdlc-jarvis-label">Orchestrator</span>
+          <span id="sdlc-jarvis-state" class="sdlc-jarvis-state">idle</span>
+          <a id="sdlc-jarvis-link" class="sdlc-chat-link" href="#">Open chat</a>
+        </div>
+        <p id="sdlc-jarvis-title" class="sdlc-jarvis-title"></p>
+        <p id="sdlc-jarvis-activity" class="sdlc-jarvis-activity"></p>
+      </aside>
+
+      <ol class="sdlc-gates" id="sdlc-gates">
+
+        <!-- 1. DESCRIBE -->
+        <li class="sdlc-gate" data-gate="describe">
+          <span class="sdlc-gate-mark" aria-hidden="true"></span>
+          <div class="sdlc-gate-body">
+            <button type="button" class="sdlc-gate-head sdlc-gate-toggle"
+                    data-intake-toggle="describe" aria-expanded="true"
+                    aria-controls="sdlc-start">
+              <span class="sdlc-gate-name">Describe</span>
+              <span class="sdlc-gate-note" id="sdlc-note-describe">the outcome you want</span>
+            </button>
+            <form id="sdlc-start" class="sdlc-panel-body" novalidate
+                  action="#" method="post"
+                  aria-label="Describe this change">
+              <div class="composer-card sdlc-composer" id="sdlc-composer">
+                <div class="input-wrapper composer-input">
+                  {% set composer_send = true %}
+                  {% set composer_realtime = false %}
+                  {% set composer_placeholder = "What should change, and how will you know it works? Attach a file or use your voice." %}
+                  {% set composer_aria = "Describe the change" %}
+                  {% include "_composer_input.html" %}
+                </div>
+                <span id="status-text" class="sdlc-composer-status" role="status" aria-live="polite"></span>
+              </div>
+              <details class="dev-options">
+                <summary>Change type &amp; agents <span>Defaults are ready to use</span></summary>
+                <div class="sdlc-row sdlc-start-row">
+                <label class="sdlc-field sdlc-field-inline" for="sdlc-kind">
+                  <span class="sdlc-label">Kind</span>
+                  <select id="sdlc-kind">
+                    <option value="feature">Feature or improvement</option>
+                    <option value="fix">Bug fix</option>
+                  </select>
+                </label>
+                <div class="sdlc-field sdlc-roles-field">
+                  <span class="sdlc-label">One coordinator and two independent reviewers. Change models only if needed.</span>
+                  <div class="sdlc-role-pickers" aria-label="Pipeline agents">
+                    {%- for role, label, agent in (("generation", "orchestrate", "jarvis"), ("validation", "verify A", "build"), ("verification", "verify B", "cursor")) %}
+                    <button type="button" class="sdlc-who{% if role == 'generation' %} sdlc-who-generate{% endif %}" data-role-picker="{{ role }}"
+                            aria-haspopup="dialog" aria-expanded="false" aria-controls="amp-dev">
+                      <span class="sdlc-role-name">{{ label }}</span>
+                      <span id="sdlc-who-{{ role }}-agent" class="sdlc-who-agent">{{ agent }}</span>
+                      <span id="sdlc-who-{{ role }}-model" class="sdlc-who-model">agent default</span>
+                    </button>
+                    {%- endfor %}
+                  </div>
+                </div>
+                </div>
+              </details>
+              <div class="sdlc-row dev-start-actions">
+                <button type="submit" class="loop-primary-btn" id="sdlc-start-submit">Clarify this change</button>
+                <span class="sdlc-status">Review the scope before building starts.</span>
+                <span id="sdlc-start-status" class="sdlc-status" aria-live="polite"></span>
+              </div>
+            </form>
+          </div>
+        </li>
+
+        <!-- 2. CLARIFY -->
+        <li class="sdlc-gate" data-gate="clarify" hidden>
+          <span class="sdlc-gate-mark" aria-hidden="true"></span>
+          <div class="sdlc-gate-body">
+            <button type="button" class="sdlc-gate-head sdlc-gate-toggle"
+                    data-intake-toggle="clarify" aria-expanded="true"
+                    aria-controls="sdlc-panel-clarify">
+              <span class="sdlc-gate-name">Clarify</span>
+              <span class="sdlc-gate-note" id="sdlc-note-clarify"></span>
+            </button>
+            <div class="sdlc-panel-body" id="sdlc-panel-clarify">
+              <ol id="sdlc-transcript" class="sdlc-transcript"
+                  aria-label="Clarification history"></ol>
+              <p class="sdlc-suggest-hint">Answer the decisions that affect the outcome. We’ll use your answers to prepare the scope and acceptance checks.</p>
+              <a id="sdlc-ask-chat" class="sdlc-chat-link" href="#" hidden>Open chat</a>
+              <p class="sdlc-suggest-hint" id="sdlc-suggestion-bar" hidden></p>
+              <div id="sdlc-ask-host" class="sdlc-ask-host"></div>
+              <div id="sdlc-questions" class="sdlc-questions" hidden></div>
+              <label class="sdlc-field" for="sdlc-note" hidden>
+                <span class="sdlc-label">Anything else <em>optional</em></span>
+                <textarea id="sdlc-note" rows="2" placeholder="Free text."></textarea>
+              </label>
+              <div class="sdlc-row">
+                <button type="button" id="sdlc-answer" class="loop-primary-btn" hidden>Submit</button>
+                <button type="button" id="sdlc-clear-suggestions" class="dev-linkish sdlc-inline-link"
+                        hidden>Clear the suggested answers</button>
+                <span id="sdlc-intake-status" class="sdlc-status" aria-live="polite"></span>
+              </div>
+            </div>
+          </div>
+        </li>
+
+        <!-- 3. CONTRACT -->
+        <li class="sdlc-gate" data-gate="contract" hidden>
+          <span class="sdlc-gate-mark" aria-hidden="true"></span>
+          <div class="sdlc-gate-body">
+            <button type="button" class="sdlc-gate-head sdlc-gate-toggle"
+                    data-intake-toggle="contract" aria-expanded="true"
+                    aria-controls="sdlc-panel-contract">
+              <span class="sdlc-gate-name">Review &amp; start</span>
+              <span class="sdlc-gate-note" id="sdlc-note-contract">agree on the scope and delivery</span>
+            </button>
+            <div class="sdlc-panel-body" id="sdlc-panel-contract">
+              <p class="sdlc-suggest-hint">Review the prepared requirements and checks. Once you start, planning, implementation, testing, and independent review run automatically.</p>
+              <div class="sdlc-contract-grid">
+                <label class="sdlc-field" for="sdlc-requirements">
+                  <span class="sdlc-label">What will change <em>editable requirements · one per line</em></span>
+                  <textarea id="sdlc-requirements" rows="6"
+                            placeholder="WHEN the operator uses the named surface THE SYSTEM SHALL … NON-GOAL: …"></textarea>
+                </label>
+                <label class="sdlc-field" for="sdlc-criteria">
+                  <span class="sdlc-label">How we’ll verify it <em>observable acceptance checks</em></span>
+                  <textarea id="sdlc-criteria" rows="6"
+                            placeholder="given … / when … / then … / fail-if …"></textarea>
+                </label>
+              </div>
+              <div class="sdlc-row">
+                <label class="sdlc-field sdlc-field-inline" for="sdlc-plan-branch">
+                  <span class="sdlc-label">Branch <em>repository policy wins</em></span>
+                  <input id="sdlc-plan-branch" type="text"
+                         placeholder="feature/name or repository version" />
+                </label>
+                <label class="sdlc-field sdlc-field-inline" for="sdlc-publish-mode">
+                  <span class="sdlc-label">After verification</span>
+                  <select id="sdlc-publish-mode">
+                    <option value="pr">Deliver a reviewed pull request</option>
+                    <option value="merge">Merge automatically after checks pass</option>
+                  </select>
+                </label>
+                <span class="sdlc-status">Isolated tests + two independent reviews</span>
+                <!-- The deploy is authorised HERE, before any code exists, so
+                     the run can finish without a second visit. -->
+                <label class="sdlc-field sdlc-field-inline" for="sdlc-plan-deploy-target">
+                  <span class="sdlc-label">Deploy after merge</span>
+                  <select id="sdlc-plan-deploy-target">
+                    <option value="">No automatic deployment</option>
+                  </select>
+                </label>
+                <p id="sdlc-delivery-summary" class="dev-delivery-summary">Delivery stops at a reviewed pull request. You control when it merges.</p>
+                <button type="button" id="sdlc-ratify" class="loop-primary-btn">Approve scope &amp; start</button>
+                <span id="sdlc-contract-status" class="sdlc-status" aria-live="polite"></span>
+              </div>
+            </div>
+          </div>
+        </li>
+
+        <!-- 4-8. The automatic stages. One gate each; the tag is what lands on
+             the issue. Plan and Design are separate gates because they answer
+             different questions — how we go about it, then what will exist. -->
+        <li class="sdlc-gate sdlc-gate-auto" data-gate="plan" hidden>
+          <span class="sdlc-gate-mark" aria-hidden="true"></span>
+          <div class="sdlc-gate-body">
+            <div class="sdlc-gate-head">
+              <code class="sdlc-gate-tag">sdlc/plan</code>
+              <span class="sdlc-gate-note" id="sdlc-note-plan"></span>
+              <span class="sdlc-stage-sessions" id="sdlc-sessions-plan"
+                    aria-label="Plan sessions"></span>
+              <span class="sdlc-gate-clock" id="sdlc-clock-plan"></span>
+            </div>
+            <pre class="sdlc-evidence" id="sdlc-ev-plan" hidden></pre>
+          </div>
+        </li>
+        <li class="sdlc-gate sdlc-gate-auto" data-gate="design" hidden>
+          <span class="sdlc-gate-mark" aria-hidden="true"></span>
+          <div class="sdlc-gate-body">
+            <div class="sdlc-gate-head">
+              <code class="sdlc-gate-tag">sdlc/design</code>
+              <span class="sdlc-gate-note" id="sdlc-note-design"></span>
+              <span class="sdlc-stage-sessions" id="sdlc-sessions-design"
+                    aria-label="Design sessions"></span>
+              <span class="sdlc-gate-clock" id="sdlc-clock-design"></span>
+            </div>
+            <pre class="sdlc-evidence" id="sdlc-ev-design" hidden></pre>
+          </div>
+        </li>
+        <li class="sdlc-gate sdlc-gate-auto" data-gate="code" hidden>
+          <span class="sdlc-gate-mark" aria-hidden="true"></span>
+          <div class="sdlc-gate-body">
+            <div class="sdlc-gate-head">
+              <code class="sdlc-gate-tag">sdlc/code</code>
+              <span class="sdlc-gate-note" id="sdlc-note-code"></span>
+              <span class="sdlc-stage-sessions" id="sdlc-sessions-code"
+                    aria-label="Code sessions"></span>
+              <span class="sdlc-gate-clock" id="sdlc-clock-code"></span>
+            </div>
+            <pre class="sdlc-evidence" id="sdlc-ev-code" hidden></pre>
+          </div>
+        </li>
+        <li class="sdlc-gate sdlc-gate-auto" data-gate="tests" hidden>
+          <span class="sdlc-gate-mark" aria-hidden="true"></span>
+          <div class="sdlc-gate-body">
+            <div class="sdlc-gate-head">
+              <code class="sdlc-gate-tag">sdlc/tests</code>
+              <span class="sdlc-gate-note" id="sdlc-note-tests"></span>
+              <span class="sdlc-stage-sessions" id="sdlc-sessions-tests"
+                    aria-label="Tests sessions"></span>
+              <span class="sdlc-gate-clock" id="sdlc-clock-tests"></span>
+            </div>
+            <pre class="sdlc-evidence" id="sdlc-ev-tests" hidden></pre>
+          </div>
+        </li>
+        <li class="sdlc-gate sdlc-gate-auto" data-gate="deploy" hidden>
+          <span class="sdlc-gate-mark" aria-hidden="true"></span>
+          <div class="sdlc-gate-body">
+            <div class="sdlc-gate-head">
+              <span class="sdlc-gate-name">Delivery checks</span>
+              <span class="sdlc-gate-note" id="sdlc-note-deploy"></span>
+              <span class="sdlc-stage-sessions" id="sdlc-sessions-deploy"
+                    aria-label="Delivery check sessions"></span>
+              <span class="sdlc-gate-clock" id="sdlc-clock-deploy"></span>
+            </div>
+            <pre class="sdlc-evidence" id="sdlc-ev-deploy" hidden></pre>
+          </div>
+        </li>
+
+        <!-- SHIP — follows the ratified delivery choice. -->
+        <li class="sdlc-gate sdlc-gate-ship" data-gate="ship" hidden>
+          <span class="sdlc-gate-mark" aria-hidden="true"></span>
+          <div class="sdlc-gate-body">
+            <div class="sdlc-gate-head">
+              <span class="sdlc-gate-name">Deliver</span>
+              <span class="sdlc-gate-note" id="sdlc-note-ship">Delivery follows your approved settings.</span>
+            </div>
+            <div class="sdlc-panel-body">
+              <div class="sdlc-verification-summary" id="sdlc-verification-summary" hidden>
+                <div class="sdlc-vsummary-head">
+                  <span class="sdlc-label">Verification clearance</span>
+                  <span class="sdlc-vsummary-badge" id="sdlc-vsummary-status">Verified &amp; Ready</span>
+                </div>
+                <div class="sdlc-verification-badges" id="sdlc-verification-badges">
+                  <div class="sdlc-vbadge" id="sdlc-vbadge-tests">
+                    <span class="sdlc-vicon">✓</span>
+                    <div class="sdlc-vcontent">
+                      <strong>Automated Tests</strong>
+                      <span class="sdlc-vsub" id="sdlc-vsub-tests">All checks passed</span>
+                    </div>
+                  </div>
+                  <div class="sdlc-vbadge" id="sdlc-vbadge-review-a">
+                    <span class="sdlc-vicon">✓</span>
+                    <div class="sdlc-vcontent">
+                      <strong>Independent Review A</strong>
+                      <span class="sdlc-vsub" id="sdlc-vsub-review-a">Validation approved</span>
+                    </div>
+                  </div>
+                  <div class="sdlc-vbadge" id="sdlc-vbadge-review-b">
+                    <span class="sdlc-vicon">✓</span>
+                    <div class="sdlc-vcontent">
+                      <strong>Independent Review B</strong>
+                      <span class="sdlc-vsub" id="sdlc-vsub-review-b">Verification approved</span>
+                    </div>
+                  </div>
+                  <div class="sdlc-vbadge" id="sdlc-vbadge-criteria">
+                    <span class="sdlc-vicon">✓</span>
+                    <div class="sdlc-vcontent">
+                      <strong>Acceptance Criteria</strong>
+                      <span class="sdlc-vsub" id="sdlc-vsub-criteria">Requirements satisfied</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="sdlc-ship-row">
+                <div class="sdlc-ship-cell">
+                  <span class="sdlc-label">Pull request <em id="sdlc-merge-policy">your delivery choice</em></span>
+                  <div class="sdlc-row">
+                    <select id="sdlc-merge-method" aria-label="Merge method">
+                      <option value="merge">merge commit</option>
+                      <option value="squash">squash</option>
+                      <option value="rebase">rebase</option>
+                    </select>
+                    <button type="button" id="sdlc-merge" class="loop-primary-btn">Merge PR</button>
+                  </div>
+                  <p class="sdlc-arm-detail">Tests and independent reviews must pass before merging. Automatic merge runs only when you selected it.</p>
+                  <!-- Shown only after the ship gate has refused, so the
+                       override is a reaction to named blockers rather than a
+                       switch sitting there inviting a click. -->
+                  <div class="sdlc-row sdlc-force-row" id="sdlc-merge-force-row" hidden>
+                    <label class="sdlc-arm" for="sdlc-merge-force">
+                      <input type="checkbox" id="sdlc-merge-force">
+                      <span>Merge anyway — I have read the blockers</span>
+                    </label>
+                  </div>
+                </div>
+                <div class="sdlc-ship-cell sdlc-armed-cell">
+                  <span class="sdlc-label">Deploy <em>restarts production</em></span>
+                  <div class="sdlc-row">
+                    <select id="sdlc-deploy-target" aria-label="Deploy target"></select>
+                    <label class="sdlc-arm" for="sdlc-arm">
+                      <input type="checkbox" id="sdlc-arm">
+                      <span>Arm</span>
+                    </label>
+                    <button type="button" id="sdlc-deploy" class="loop-action-btn" disabled>Deploy</button>
+                    <!-- The deploy restarts the process serving this page, so
+                         its exit code proves nothing. Verification is a second
+                         call, made once the service answers again. -->
+                    <button type="button" id="sdlc-deploy-verify" class="loop-action-btn">Verify</button>
+                  </div>
+                  <p class="sdlc-arm-detail" id="sdlc-deploy-detail"></p>
+                </div>
+              </div>
+              <div class="sdlc-row">
+                <span id="sdlc-publish-status" class="sdlc-status" aria-live="polite"></span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ol>
+
+      <div class="sdlc-flight-foot" id="sdlc-foot" hidden>
+        <div id="sdlc-fuse" class="sdlc-fuse" hidden>
+          <p id="sdlc-fuse-reason" class="sdlc-fuse-reason"></p>
+          <div class="sdlc-fuse-actions">
+            <button type="button" id="sdlc-fuse-edit" class="loop-action-btn">Edit scope</button>
+            <button type="button" id="sdlc-fuse-budget" class="loop-action-btn">Raise the stage budget and resume</button>
+            <button type="button" id="sdlc-fuse-abort" class="loop-action-btn">Abort</button>
+          </div>
+        </div>
+        <button type="button" id="sdlc-resume" class="loop-action-btn" hidden>Resume</button>
+        <button type="button" id="sdlc-abort" class="loop-action-btn" hidden>Abort run</button>
+        <button type="button" id="sdlc-archive" class="loop-action-btn is-danger">Delete</button>
+        <details class="sdlc-raw">
+          <summary>Stage log</summary>
+          <ol id="sdlc-log" class="sdlc-log" aria-live="polite"></ol>
+        </details>
+      </div>
+    </section>
+
+    <aside class="dev-side" aria-label="Repository context">
+    <section class="dev-panel sdlc-runs-card" aria-label="Runs">
+      <div class="sdlc-runs-head">
+        <h2>Changes</h2>
+        <span id="sdlc-runs-count" class="dev-count">0</span>
+      </div>
+      <div id="sdlc-runs" class="sdlc-runs-list"></div>
+    </section>
+
+
+      <section class="dev-panel dev-issues-panel" aria-label="Repository issues">
+        <h2>Issues</h2>
+        <div id="dev-issue-state-filter" class="dev-chiprow" role="group" aria-label="Issue state filter">
+          <button type="button" class="dev-chip active" data-issue-state="open" aria-pressed="true">open</button>
+          <button type="button" class="dev-chip" data-issue-state="closed" aria-pressed="false">closed</button>
+          <button type="button" class="dev-chip" data-issue-state="all" aria-pressed="false">all</button>
+        </div>
+        <div id="dev-issue-filter" class="dev-chiprow" role="group" aria-label="Issue session filter">
+          <button type="button" class="dev-chip active" data-session="all" aria-pressed="true">all</button>
+          <button type="button" class="dev-chip" data-session="bound" aria-pressed="false">has session</button>
+          <button type="button" class="dev-chip" data-session="unbound" aria-pressed="false">no session</button>
+        </div>
+        <div id="dev-issues" class="dev-issues">
+          <div class="loops-loading">Loading issues…</div>
+        </div>
+      </section>
+      <section class="dev-panel dev-prs-panel" aria-label="PRs">
+        <h2>PRs</h2>
+        <div id="dev-pr-filter" class="dev-chiprow" role="group" aria-label="PR state filter">
+          <button type="button" class="dev-chip active" data-pr-state="open" aria-pressed="true">open</button>
+          <button type="button" class="dev-chip" data-pr-state="closed" aria-pressed="false">closed</button>
+          <button type="button" class="dev-chip" data-pr-state="all" aria-pressed="false">all</button>
+        </div>
+        <div id="dev-prs" class="dev-prs">
+          <div class="loops-loading">Loading repos…</div>
+        </div>
+      </section>
+    </aside>
+    </div>
+  </main>
+
+
+  <!-- Agent & model. The roster comes from /api/models; each catalogue is
+       discovered from the selected agent's current credentials so a Dev run
+       can recover when an OAuth model becomes available after gateway start. -->
+  <div id="amp-dev-backdrop" class="amp-dev-backdrop" hidden></div>
+  <div id="amp-dev" class="amp-dev" hidden role="dialog" aria-modal="true"
+       aria-labelledby="amp-dev-title">
+    <div class="amp-dev-head">
+      <h2 id="amp-dev-title"><span id="amp-dev-role">orchestrate</span> <span id="amp-dev-title-kind">model</span></h2>
+      <button type="button" id="amp-dev-close" class="loop-icon-btn" aria-label="Close">&times;</button>
+    </div>
+    <div class="amp-dev-body">
+      <section id="amp-dev-agent-section" aria-labelledby="amp-dev-agent-h">
+        <h3 id="amp-dev-agent-h" class="sdlc-label">Agent</h3>
+        <div id="amp-dev-agents" class="amp-dev-agents" role="radiogroup" aria-label="Agent"></div>
+      </section>
+      <section aria-labelledby="amp-dev-model-h">
+        <h3 id="amp-dev-model-h" class="sdlc-label">Model</h3>
+        <div id="amp-dev-models" class="amp-dev-models" role="radiogroup" aria-label="Model"></div>
+      </section>
+    </div>
+    <div class="amp-dev-actions">
+      <button type="button" id="amp-dev-refresh" class="loop-action-btn">Refresh models</button>
+      <button type="button" id="amp-dev-default" class="loop-action-btn">Agent default</button>
+      <button type="button" id="amp-dev-save" class="loop-primary-btn">Done</button>
+    </div>
+  </div>
+
+</div>
+<script src="{{ base }}/static/nav.js?v={{ asset_rev('nav.js') }}"></script>
+<script src="{{ base }}/static/state.js?v={{ asset_rev('state.js') }}"></script>
+<script src="{{ base }}/static/api.js?v={{ asset_rev('api.js') }}"></script>
+<script src="{{ base }}/static/ask_user.js?v={{ asset_rev('ask_user.js') }}"></script>
+<script src="{{ base }}/static/attachments.js?v={{ asset_rev('attachments.js') }}"></script>
+<script src="{{ base }}/static/voice.js?v={{ asset_rev('voice.js') }}"></script>
+<script src="{{ base }}/static/dev_composer.js?v={{ asset_rev('dev_composer.js') }}"></script>
+<script src="{{ base }}/static/dev.js?v={{ asset_rev('dev.js') }}"></script>
+<script src="{{ base }}/static/dev_sdlc.js?v={{ asset_rev('dev_sdlc.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+          <div id="amp-backdrop" class="amp-backdrop" hidden></div>
+          <div id="agent-model-pop" class="agent-model-pop" hidden role="dialog"
+               aria-modal="true" aria-labelledby="amp-title"
+               aria-describedby="amp-error" aria-busy="false">
+            <div class="amp-head">
+              <span id="amp-title" class="amp-title">Agent &amp; Model</span>
+              <button type="button" id="amp-close" class="amp-close"
+                      aria-label="Close">×</button>
+            </div>
+            <div class="amp-tabs-nav" role="tablist" aria-label="Selection mode">
+              <button type="button" id="amp-tab-btn-agent" class="amp-tab-btn is-active"
+                      role="tab" aria-selected="true" aria-controls="amp-tab-agent">
+                <svg class="amp-tab-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span>Agent</span>
+                <span id="amp-active-agent-badge" class="amp-tab-badge"></span>
+              </button>
+              <button type="button" id="amp-tab-btn-model" class="amp-tab-btn"
+                      role="tab" aria-selected="false" aria-controls="amp-tab-model">
+                <svg class="amp-tab-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                <span>Model</span>
+                <span id="amp-active-model-badge" class="amp-tab-badge"></span>
+              </button>
+            </div>
+            <div id="amp-body" class="amp-body">
+              <!-- Tab Panel 1: Agent -->
+              <div id="amp-tab-agent" class="amp-tab-panel is-active" role="tabpanel" aria-labelledby="amp-tab-btn-agent">
+                <section class="amp-section amp-agent-section" aria-labelledby="amp-agent-title">
+                  <h3 id="amp-agent-title" class="amp-head-title">Agent</h3>
+                  <div id="agent-card" class="agent-card"></div>
+                </section>
+              </div>
+
+              <!-- Tab Panel 2: Model -->
+              <div id="amp-tab-model" class="amp-tab-panel" role="tabpanel" aria-labelledby="amp-tab-btn-model" hidden>
+                <section class="amp-section amp-model-section" aria-label="Models">
+                  <div class="amp-model-grid">
+                    <div id="amp-provider-tabs" class="amp-provider-tabs"
+                         role="tablist" aria-label="Providers" aria-orientation="horizontal"></div>
+                    <div class="amp-model-pane">
+                      <label class="amp-model-search-wrap" for="amp-model-search">
+                        <input id="amp-model-search" class="amp-model-search" type="search"
+                               placeholder="Search models" aria-label="Search models" autocomplete="off"
+                               aria-controls="amp-model-cards">
+                      </label>
+                      <div id="amp-model-cards" class="amp-model-cards"
+                           role="radiogroup" aria-label="Models"></div>
+                    </div>
+                  </div>
+                </section>
+                <p id="amp-reasoning-hint" class="amp-reasoning-hint"
+                   role="note" hidden></p>
+                <section id="amp-speed-section" class="amp-advanced" hidden
+                         aria-labelledby="amp-speed-title">
+                  <div class="amp-advanced-head">
+                    <h3 id="amp-speed-title" class="amp-head-title">Speed</h3>
+                  </div>
+                  <div id="amp-speed-options" class="amp-speed-options"
+                       role="radiogroup" aria-label="Speed"></div>
+                </section>
+                <div class="amp-model-defaults">
+                  <button type="button" id="amp-default" class="amp-action amp-default">Use default</button>
+                  {#- Saving an agent's default is operator config: admins only. -#}
+                  {% if is_admin %}<button type="button" id="amp-set-default" class="amp-action amp-set-default" title="Set current model and effort as default for this agent">Set default</button>{% endif %}
+                  <button type="button" id="amp-refresh-models" class="amp-refresh-models"
+                          title="Refresh models for this agent" aria-label="Refresh models">
+                    <span class="amp-refresh-icon">↻</span> Refresh
+                  </button>
+                </div>
+              </div>
+
+              <!-- Legacy select remains a compatibility projection for older
+                   clients/tests; it is not an independent state owner. -->
+              <div class="model-picker amp-row-hidden">
+                <select id="model-select" aria-label="Switch model"></select>
+                <svg class="model-picker-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+              <label class="amp-row amp-row-hidden"><span class="amp-label">Agent</span>
+              <div class="agent-picker">
+                <select id="agent-select" aria-label="Switch agent"></select>
+              </div>
+              </label>
+              <p id="amp-error" class="amp-error" role="alert" hidden></p>
+            </div>
+            <div class="amp-actions">
+              <div id="amp-reasoning-section" class="amp-effort-control" hidden>
+                <label id="amp-reasoning-title" for="amp-reasoning">Effort</label>
+                <select id="amp-reasoning" class="amp-effort-select"
+                        aria-describedby="amp-reasoning-hint"></select>
+              </div>
+              <button type="button" id="amp-discard" class="amp-action">Discard</button>
+              <button type="button" id="amp-save" class="amp-action amp-save" disabled>Save</button>
+            </div>
+          </div>

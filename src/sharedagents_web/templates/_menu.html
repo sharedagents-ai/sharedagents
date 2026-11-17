@@ -1,0 +1,87 @@
+{#
+  Shared left menu — the ONE complete sidebar rendered by every WebUI tab.
+
+  The chat page and the Usage / Tasks / Goals / Agent Monitor / Topics pages
+  include this exact component. Page headers import menu_button() for the mobile
+  opener; static/nav.js supplies navigation-only behaviour on non-chat pages,
+  The menu's expanded/collapsed state persists across page navigation on desktop in each tab;
+  on mobile or narrow viewports (<=768px), the menu collapses on navigation to keep page content clear.
+
+  Jinja context:
+    active — 'chat'|'usage'|'tasks'|'goals'|'agents'|'topics'|'decision'|'models'|'users'
+#}
+{% macro menu_button() -%}
+<button id="mon-menu-btn" class="icon-btn mon-menu-btn" title="Menu"
+        aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <line x1="3" y1="6" x2="21" y2="6"/>
+    <line x1="3" y1="12" x2="21" y2="12"/>
+    <line x1="3" y1="18" x2="21" y2="18"/>
+  </svg>
+</button>
+{%- endmacro %}
+
+<div id="sidebar-backdrop" class="sidebar-backdrop" hidden></div>
+<aside id="sidebar" class="shared-sidebar collapsed" aria-label="Navigation"
+       data-menu-page="{{ active | default('') }}"
+       aria-hidden="true" inert>
+  <div class="sidebar-header">
+    <a class="logo" href="{{ base }}/" title="Back to chat">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+        <path d="M2 17l10 5 10-5"/>
+        <path d="M2 12l10 5 10-5"/>
+      </svg>
+      <span>{{ site_title }}</span>
+    </a>
+  </div>
+
+  <details id="nav-section" class="sidebar-section sidebar-nav" open>
+    <summary id="nav-toggle" class="nav-toggle-btn">
+      <svg class="nav-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="9 18 15 12 9 6"/>
+      </svg>
+      <span>MENU</span>
+    </summary>
+    <nav id="nav-list" class="nav-list">
+      {% include "_nav_items.html" %}
+    </nav>
+  </details>
+
+  <details class="sidebar-section sidebar-topics sidebar-collapsible"
+           id="sidebar-topics">
+    <summary class="section-label">
+      <span class="section-caret">▶</span>
+      <span class="section-label-text">TOPICS</span>
+      <a class="section-label-link" href="{{ base }}/topics" title="Open the full topic browser">all →</a>
+    </summary>
+    <div id="topic-list"></div>
+  </details>
+
+  <div class="sidebar-section sidebar-approvals" id="sidebar-approvals" hidden>
+    <div class="section-label">
+      <span>PENDING YOUR DECISION</span>
+      <span class="section-label-count" id="pending-approvals-count">0</span>
+    </div>
+    <div id="pending-approvals"></div>
+  </div>
+
+  <details class="sidebar-section sidebar-conversations sidebar-collapsible"
+           id="sidebar-conversations">
+    <summary class="section-label">
+      <span class="section-caret">▶</span>
+      <span class="section-label-text">CONVERSATIONS</span>
+    </summary>
+    <div id="session-list"></div>
+  </details>
+
+  <div class="sidebar-footer">
+    <button id="settings-btn" class="icon-btn" title="Settings" aria-label="Settings">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+</aside>
+<script src="{{ base }}/static/menu_state.js?v={{ asset_rev('menu_state.js') }}"></script>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>{{ site_title }} · loops</title>
+<meta name="sharedagents-base" content="{{ base }}">
+<meta name="sharedagents-initial-loop" content="{{ initial_loop_id }}">
+<link rel="stylesheet" href="{{ base }}/static/style.css?v={{ asset_rev('style.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/menu.css?v={{ asset_rev('menu.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/agents.css?v={{ asset_rev('agents.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/loops.css?v={{ asset_rev('loops.css') }}">
+{% include "_ui_zoom.html" %}
+</head>
+<body class="monitor-body">
+{% set active = 'loops' %}
+{% include "_menu.html" %}
+{% from "_menu.html" import menu_button %}
+<div id="loops-app">
+  <header class="mon-header loops-header">
+    {{ menu_button() }}
+    <a class="mon-logo" href="{{ base }}/" title="Back to chat">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+        <path d="M2 17l10 5 10-5"/>
+        <path d="M2 12l10 5 10-5"/>
+      </svg>
+      <span>{{ site_title }}</span>
+    </a>
+    <div class="loops-title-block">
+      <div class="mon-title">
+        <h1>Loops</h1>
+        <span id="loops-conn" class="mon-conn mon-conn-unknown" title="Loops API status"></span>
+      </div>
+      <p>Scheduled work and the sessions it runs in</p>
+    </div>
+    <div class="mon-header-right">
+      <span id="loops-totals" class="loops-total" aria-live="polite"></span>
+      <button type="button" id="loops-refresh" class="icon-btn" title="Refresh" aria-label="Refresh loops">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12a9 9 0 1 1-3-6.7"/>
+          <path d="M21 3v6h-6"/>
+        </svg>
+      </button>
+      <span id="loops-updated" class="mon-updated" title="Last update"></span>
+    </div>
+  </header>
+
+  <section class="loops-toolbar" aria-label="Loop controls">
+    <p class="loops-board-hint">Attention first · paused loops need input · idle loops are completed · Delete removes a loop permanently</p>
+    <div class="loops-toolbar-actions">
+      <button type="button" id="loops-create-toggle" class="loop-primary-btn"
+              aria-expanded="false" aria-controls="loops-create-form">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        <span>New loop</span>
+      </button>
+    </div>
+  </section>
+
+  <form id="loops-create-form" class="loops-create-form" hidden novalidate>
+    <div class="loops-create-heading">
+      <div>
+        <h2>Schedule a loop</h2>
+        <p>Schedule the prompt to run on its own — in a new conversation or one you already have.</p>
+      </div>
+      <button type="button" id="loops-create-close" class="loop-icon-btn" aria-label="Close new loop form" title="Close">&times;</button>
+    </div>
+    <label class="loops-prompt-field" for="loops-create-prompt">
+      <span>What should run on every tick?</span>
+      <textarea id="loops-create-prompt" placeholder="For example: check the deploy and report anything red." rows="3" required></textarea>
+    </label>
+    <p class="loops-form-hint" id="loops-step-help">
+      A loop step is one scheduled turn: the prompt runs in the bound conversation
+      with the loop guide attached. If the conversation is busy when a tick fires,
+      that run is skipped and counted as a miss — runs never queue up. Three failed
+      runs in a row pause the loop automatically.
+    </p>
+    <fieldset class="loops-run-in" id="loops-run-in">
+      <legend>Run in</legend>
+      <label class="loops-run-in-option">
+        <input type="radio" name="loops-run-in" value="new" id="loops-run-in-new" checked>
+        <span><strong>New session</strong><small>runs in its own new conversation — separate from your active chat</small></span>
+      </label>
+      <label class="loops-run-in-option">
+        <input type="radio" name="loops-run-in" value="existing" id="loops-run-in-existing">
+        <span><strong>Existing session</strong><small>attach to a conversation you already have</small></span>
+      </label>
+    </fieldset>
+    <div class="loops-create-row" id="loops-new-session-fields">
+      <label class="loop-field" for="loops-create-agent">
+        <span>Agent</span>
+        <select id="loops-create-agent" class="loop-session-select">
+          <option value="">Loading agents…</option>
+        </select>
+      </label>
+      <label class="loop-field" for="loops-create-model">
+        <span>Model</span>
+        <select id="loops-create-model" class="loop-session-select" disabled
+                title="Model the loop's session runs (same picker as the chat composer)">
+          <option value="">Loading agents…</option>
+        </select>
+      </label>
+    </div>
+    <div class="loops-create-row loops-topic-row" id="loops-topic-row">
+      <label class="loop-field" for="loops-create-topic">
+        <span>Topic (optional)</span>
+        <select id="loops-create-topic" class="loop-session-select">
+          <option value="">No topic</option>
+        </select>
+      </label>
+    </div>
+    <div class="loops-create-row" id="loops-existing-session-fields" hidden>
+      <label class="loop-field" for="loops-create-session">
+        <span>Session</span>
+        <select id="loops-create-session" class="loop-session-select" required>
+          <option value="">Loading sessions…</option>
+        </select>
+      </label>
+    </div>
+    <div class="loops-create-row" id="loops-frequency-row">
+      <label class="loop-field" for="loops-create-frequency">
+        <span>Schedule</span>
+        <select id="loops-create-frequency" class="loop-session-select">
+          <option value="30m">Every 30 minutes</option>
+          <option value="1h">Hourly</option>
+          <option value="2h">Every 2 hours</option>
+          <option value="4h">Every 4 hours</option>
+          <option value="12h">Every 12 hours</option>
+          <option value="1d">Daily</option>
+          <option value="7d">Weekly</option>
+          <option value="custom">Custom…</option>
+          <option value="time">At a specific time…</option>
+        </select>
+      </label>
+      <label class="loop-field" id="loops-create-interval-field" for="loops-create-interval" hidden
+             title="How often the prompt runs. Minimum 1 minute, maximum 28 days.">
+        <span>Interval</span>
+        <input type="text" id="loops-create-interval" class="loop-interval-input"
+               placeholder="e.g. 30m, every 2h, 1800" value="30m" required />
+      </label>
+      <label class="loop-field" id="loops-create-time-field" for="loops-create-time" hidden
+             title="Run once a day at this local wall-clock time.">
+        <span>At</span>
+        <input type="time" id="loops-create-time" class="loop-interval-input"
+               value="09:00" required />
+      </label>
+    </div>
+    <p class="loops-form-hint" id="loops-frequency-hint">Runs every 30 minutes · first run starts right away.</p>
+    <fieldset class="loops-run-in" id="loops-run-options">
+      <legend>Each run</legend>
+      <label class="loops-run-in-option">
+        <input type="checkbox" id="loops-create-fresh-session" autocomplete="off">
+        <span><strong>New session each run</strong><small>mint a fresh conversation on every tick so context and spend do not accumulate</small></span>
+      </label>
+      <label class="loop-field" for="loops-create-budget">
+        <span>Budget per run (USD)</span>
+        <input type="number" id="loops-create-budget" class="loop-interval-input"
+               min="0" max="1000" step="0.5" placeholder="optional, e.g. 5">
+      </label>
+    </fieldset>
+    <p class="loops-form-hint" id="loops-budget-hint">
+      Leave budget empty to keep the bound session's existing cap. When set,
+      each tick may spend that amount (the cap is restamped to spent + budget).
+    </p>
+    <div class="loops-create-footer">
+      <div class="loops-create-actions">
+        <button type="button" id="loops-create-cancel" class="loop-action-btn">Cancel</button>
+        <button type="submit" class="loop-primary-btn">Start loop</button>
+      </div>
+    </div>
+    <div id="loops-create-error" class="loops-error" role="alert"></div>
+  </form>
+
+  <main class="loops-main">
+    <section class="loops-list-panel" aria-label="Loops">
+      <div id="loops-list" class="loops-list" aria-live="polite">
+        <section class="loop-state-column" data-card="needs_input"><header class="loop-state-header">Needs input <span>0</span></header></section>
+        <section class="loop-state-column" data-card="working"><header class="loop-state-header">Working <span>0</span></header></section>
+        <section class="loop-state-column" data-card="completed"><header class="loop-state-header">Completed <span>0</span></header></section>
+      </div>
+    </section>
+    <section id="loops-detail" class="loops-detail" aria-label="Loop details" hidden></section>
+  </main>
+</div>
+<script src="{{ base }}/static/nav.js?v={{ asset_rev('nav.js') }}"></script>
+<script src="{{ base }}/static/agent_model_picker.js?v={{ asset_rev('agent_model_picker.js') }}"></script>
+<script src="{{ base }}/static/loops.js?v={{ asset_rev('loops.js') }}"></script>
+</body>
+</html>

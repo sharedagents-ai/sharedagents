@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>{{ site_title }} · tasks</title>
+<meta name="sharedagents-base" content="{{ base }}">
+<link rel="stylesheet" href="{{ base }}/static/style.css?v={{ asset_rev('style.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/menu.css?v={{ asset_rev('menu.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/agents.css?v={{ asset_rev('agents.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/tasks.css?v={{ asset_rev('tasks.css') }}">
+{% include "_ui_zoom.html" %}
+</head>
+<body class="monitor-body">
+{% set active = 'tasks' %}
+{% include "_menu.html" %}
+{% from "_menu.html" import menu_button %}
+<div id="tasks-app">
+  <header class="mon-header">
+    {{ menu_button() }}
+    <a class="mon-logo" href="{{ base }}/" title="Back to chat">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+        <path d="M2 17l10 5 10-5"/>
+        <path d="M2 12l10 5 10-5"/>
+      </svg>
+      <span>{{ site_title }}</span>
+    </a>
+    <div class="mon-title">
+      <h1>Tasks</h1>
+    </div>
+    <div class="mon-header-right">
+      <input type="search" id="tasks-topic-filter" class="mon-search" placeholder="filter by topic…" list="tasks-topic-options" autocomplete="off" spellcheck="false">
+      <datalist id="tasks-topic-options"></datalist>
+      <label class="tasks-show-archived" title="Show archived (removed) tasks — their chats still exist">
+        <input type="checkbox" id="tasks-show-archived">
+        <span>Show archived</span>
+      </label>
+      <button id="tasks-new-toggle" class="tasks-btn tasks-btn-primary" aria-expanded="false"{% if not can_manage_tasks %} disabled{% endif %}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        <span>New Task</span>
+      </button>
+      <span id="tasks-updated" class="mon-updated" title="Last update"></span>
+    </div>
+  </header>
+
+  {% if can_manage_tasks %}<div class="tasks-settings-bar">
+    <span>Recap model</span>
+    <button type="button" id="tasks-summary-model" class="tasks-btn" aria-label="Recap model" aria-haspopup="dialog">Default model</button>
+    <span id="tasks-summary-model-status" role="status"></span>
+  </div>{% endif %}
+  <div id="share-pop" class="share-pop tasks-share-pop" role="dialog" aria-label="Sharing" hidden></div>
+  <form id="tasks-new-form" class="tasks-new-form" hidden>
+    <input type="text" id="tasks-new-title" placeholder="title (e.g. fix login bug)" autocomplete="off" maxlength="120">
+    <select id="tasks-new-topic" class="tasks-new-topic" aria-label="Topic">
+      <option value="">Topic (optional)</option>
+    </select>
+    <button type="submit" class="tasks-btn tasks-btn-primary">Create</button>
+    <button type="button" id="tasks-new-cancel" class="tasks-btn tasks-btn-ghost">Cancel</button>
+  </form>
+
+  <main id="tasks-board" class="tasks-board" aria-label="Tracked sessions by state">
+    <div id="tasks-empty" class="mon-empty">No tracked sessions yet — hit "New Task" to create one.</div>
+  </main>
+  {% if can_manage_tasks %}
+  <form id="tasks-describe-form" class="tasks-describe-form">
+    <div class="composer-card" id="tasks-composer" data-describe-form="tasks-describe-form">
+      <div class="input-wrapper composer-input">
+        <div class="input-footer"><span id="status-text" role="status" aria-live="polite"></span></div>
+        {% set composer_realtime = false %}
+        {% set composer_placeholder = "Describe a task for a new session. Attach a file or use your voice." %}
+        {% set composer_aria = "Describe a new task" %}
+        {% include "_composer_input.html" %}
+        <div class="composer-toolbar">
+          <button type="button" id="tasks-agent-model" class="tasks-btn" aria-haspopup="dialog" disabled>Agent &amp; Model</button>
+          <select id="tasks-describe-topic" class="tasks-btn" aria-label="New task topic">
+            <option value="">Automatic topic</option>
+            <option value="general">General</option>
+          </select>
+          <span class="tasks-describe-hint">Title created automatically</span>
+        </div>
+        <a id="tasks-created-chat" class="tasks-created-chat" hidden>Open created task</a>
+      </div>
+    </div>
+  </form>
+  {% endif %}
+</div>
+<script src="{{ base }}/static/nav.js?v={{ asset_rev('nav.js') }}"></script>
+<script src="{{ base }}/static/confirm-card.js?v={{ asset_rev('confirm-card.js') }}"></script>
+<script src="{{ base }}/static/share.js?v={{ asset_rev('share.js') }}"></script>
+<script src="{{ base }}/static/agent_model_catalog.js?v={{ asset_rev('agent_model_catalog.js') }}"></script>
+<script src="{{ base }}/static/agent_model_picker.js?v={{ asset_rev('agent_model_picker.js') }}"></script>
+<script src="{{ base }}/static/agent_model_dialog.js?v={{ asset_rev('agent_model_dialog.js') }}"></script>
+<script src="{{ base }}/static/tasks.js?v={{ asset_rev('tasks.js') }}"></script>
+{% if can_manage_tasks %}
+<script src="{{ base }}/static/state.js?v={{ asset_rev('state.js') }}"></script>
+<script src="{{ base }}/static/api.js?v={{ asset_rev('api.js') }}"></script>
+<script src="{{ base }}/static/attachments.js?v={{ asset_rev('attachments.js') }}"></script>
+<script src="{{ base }}/static/voice.js?v={{ asset_rev('voice.js') }}"></script>
+<script src="{{ base }}/static/dev_composer.js?v={{ asset_rev('dev_composer.js') }}"></script>
+<script src="{{ base }}/static/tasks_composer.js?v={{ asset_rev('tasks_composer.js') }}"></script>
+{% endif %}
+</body>
+</html>

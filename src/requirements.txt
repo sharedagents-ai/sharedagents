@@ -1,0 +1,73 @@
+# Single canonical install spec for the sharedagents runtime.
+#
+# The launcher (./sharedagents) sha1's this file and pyproject.toml into
+# .venv/.sharedagents_installed; mismatch → reinstall on next bootstrap.
+# That hash detection drives both the production .venv and the test
+# sandbox venv (since tests invoke the same launcher with a different
+# SHAREDAGENTS_VENV).
+#
+# Keep every package the runtime *imports* in here. Test-only deps
+# (pytest, etc.) live in the `dev` extra in pyproject.toml.
+
+# TUI / HTTP / rendering
+textual>=0.85
+httpx>=0.27
+aiohttp>=3.9
+rich>=13.0
+requests>=2.32
+# Subscription meters reuse credentials stored by vendor CLIs in the OS keyring.
+keyring>=25
+
+# Content extraction (trafilatura is used by the web-fetch tooling)
+trafilatura>=2.0
+
+# OpenAI-compatible client + embeddings
+openai>=1.0
+
+# Memory / vector
+sqlite-vec>=0.1.6
+
+# MCP client + bundled servers
+mcp>=1.0
+
+# Microsoft markitdown — PDF/DOCX/etc → markdown. Surfaced to the agent
+# via the markitdown-mcp server when configured in mcpServers.
+markitdown[pdf]>=0.0.1a3
+markitdown-mcp>=0.0.1a3
+
+# ACP (Agent Client Protocol) — runtime, not just dev. The agent
+# daemon's HTTP listener and the in-process bridge both import it.
+agent-client-protocol>=0.9
+
+# Daemon-side ASGI stack
+hypercorn>=0.17
+starlette>=0.40
+sse-starlette>=2.1
+
+# ffmpeg (static binary, shipped as a wheel) — two runtime consumers:
+#   1. Telegram voice notes arrive as OGG/Opus and must be re-encoded
+#      to MP3 before the OpenRouter STT endpoint accepts them
+#      (gpt-4o-transcribe rejects Opus on the wire).
+#   2. The youtube MCP server splits long-video audio into 5-min chunks
+#      before STT — without chunking, gpt-4o-transcribe silently
+#      truncates the transcript partway through.
+# All three call sites (sharedagents_telegram.bot, sharedagents_gateway.
+# openai_endpoint, sharedagents_mcp.youtube_mcp_server) prefer a system-PATH
+# ffmpeg and fall back to this bundled binary, so operators never have
+# to apt-install ffmpeg themselves.
+imageio-ffmpeg>=0.5.1
+
+# YouTube ingestion for the bundled youtube MCP server
+# (sharedagents_mcp.youtube_mcp_server). yt-dlp shells out to download
+# audio + extract metadata; youtube-transcript-api fetches captions
+# directly from YouTube's caption endpoint and is much less prone to
+# datacenter-IP bot-detection that blocks yt-dlp from cloud hosts.
+yt-dlp>=2024.10.7
+youtube-transcript-api>=1.0
+
+# UUIDv7 generator — replaces the hand-rolled MongoDB-style ObjectId
+# in sharedagents_core.session. Pure-Python backport of RFC 9562 UUIDv7
+# (stdlib uuid.uuid7() lands in Python 3.13+; deploy target is 3.12).
+# Returns lex-sortable 32-hex hashes (48-bit ms timestamp prefix +
+# 4-bit version + 12-bit rand_a + 2-bit variant + 62-bit rand_b).
+uuid7>=0.1

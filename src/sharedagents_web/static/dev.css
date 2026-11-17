@@ -1,0 +1,1889 @@
+/* Dev tab — closed-loop runner. Shares loops layout tokens; this file is
+   the pipeline, PR inbox, and state badges. */
+
+#dev-app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: 100vh;
+  max-height: 100dvh;
+  min-height: 0;
+  margin: 0;
+  padding: 0 16px 16px;
+  overflow: hidden;
+  container-type: inline-size;
+  container-name: dev;
+}
+
+.dev-pipeline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+.dev-pipeline li {
+  font: 600 11px/1.4 var(--font-sans);
+  color: var(--text-muted);
+  padding: 4px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-pill);
+  background: var(--bg-tertiary);
+}
+.dev-pipeline li.is-on {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+  background: var(--bg-active);
+}
+
+.dev-forge-pill {
+  font: 600 10px/1.4 var(--font-sans);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+}
+.dev-forge-pill.ok {
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 40%, var(--border-color));
+}
+.dev-forge-pill.bad {
+  color: var(--error);
+}
+
+.dev-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  margin: 10px 0 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.dev-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+}
+.dev-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+}
+.dev-list-panel, .dev-prs-panel, .dev-issues-panel {
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+}
+.dev-list-panel { flex: 1.2; }
+.dev-prs-panel { flex: 0.8; }
+.dev-issues-panel h2, .dev-prs-panel h2, .dev-list-panel h2 {
+  margin: 0;
+  padding: 12px 14px 0;
+  font: 600 12px/1.4 var(--font-sans);
+  color: var(--text-muted);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.dev-list, .dev-prs, .dev-issues { padding: 8px; }
+.dev-issues, .dev-prs {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+/* Three issue cards + the +N more line; the rest stay off the page. */
+.dev-issues {
+  max-height: calc(3 * 96px + 22px);
+  min-height: calc(3 * 88px);
+}
+.dev-prs {
+  max-height: calc(3 * 68px + 22px);
+  min-height: calc(3 * 60px);
+}
+.dev-forge-more {
+  padding: 4px 12px 6px;
+  font: 500 11px/1.4 var(--font-sans);
+  color: var(--text-muted);
+}
+
+.dev-card, .dev-pr, .dev-issue {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  padding: 10px 12px;
+  margin: 0 0 6px;
+  cursor: pointer;
+}
+.dev-card:hover, .dev-pr:hover, .dev-issue:hover { background: var(--bg-hover); }
+.dev-card.is-selected {
+  background: var(--bg-active);
+  border-color: var(--border-strong);
+}
+.dev-card-top, .dev-pr-top, .dev-issue-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+.dev-card-object {
+  font: 600 14px/1.3 var(--font-sans);
+  color: var(--text-primary);
+}
+.dev-card-meta, .dev-pr-meta, .dev-issue-meta {
+  font: 12px/1.4 var(--font-sans);
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+.dev-card-done {
+  font: 12px/1.4 var(--font-sans);
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+.dev-badge {
+  font: 600 10px/1.4 var(--font-sans);
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.dev-badge.inner, .dev-badge.pr_open { color: var(--accent); }
+.dev-badge.ci_red, .dev-badge.blocked { color: var(--error); }
+.dev-badge.ready { color: var(--success); }
+.dev-badge.merged { color: var(--text-muted); }
+
+.dev-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.dev-card-actions a, .dev-card-actions button {
+  font: 500 12px/1.4 var(--font-sans);
+}
+
+.dev-badge.has-session { color: var(--success); }
+.dev-badge.no-session { color: var(--text-muted); }
+
+.dev-repo-field {
+  min-width: 220px;
+}
+.dev-repo-field select {
+  max-width: 320px;
+}
+.loops-toolbar {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dev-issue-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.dev-issue-actions a, .dev-issue-actions button {
+  font: 500 12px/1.4 var(--font-sans);
+}
+
+@media (max-width: 900px) {
+  .dev-workspace { grid-template-columns: 1fr; }
+}
+
+/* ══ The flight strip ══════════════════════════════════════════════════════
+   A change moves through gates, top to bottom. The rail on the left is solid
+   behind the current gate and dashed ahead of it, so "where am I" is answered
+   by the shape of the line, not by reading labels. Each automatic gate is
+   named by the tag it will write on the forge issue — the marker and the forge
+   label are the same string on purpose. */
+
+.sdlc-flight {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: visible;
+  padding-right: 4px;
+}
+
+.sdlc-flight-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+.sdlc-jarvis {
+  margin: 10px 0 4px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border-color));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg-secondary));
+}
+.sdlc-jarvis-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sdlc-jarvis-label {
+  font: 700 10px/1.3 var(--font-mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.sdlc-jarvis-state {
+  font: 600 11px/1.3 var(--font-mono);
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+.sdlc-jarvis-state.is-live {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.sdlc-jarvis-title {
+  margin: 6px 0 0;
+  font: 500 13px/1.4 var(--font-sans);
+  color: var(--text-primary);
+}
+.sdlc-jarvis-activity {
+  margin: 2px 0 0;
+  font: 400 12px/1.4 var(--font-sans);
+  color: var(--text-muted);
+}
+.sdlc-run-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+.sdlc-run-session {
+  font: 600 11px/1.3 var(--font-sans);
+  color: var(--accent);
+  text-decoration: none;
+  padding: 3px 7px;
+  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in srgb, var(--accent) 36%, var(--border-color));
+  white-space: nowrap;
+}
+.sdlc-run-session:hover { text-decoration: underline; }
+.sdlc-flight-title { min-width: 0; flex: 1 1 auto; }
+.sdlc-flight-title h2 {
+  margin: 0;
+  font: 600 17px/1.3 var(--font-sans);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sdlc-flight-meta { display: flex; gap: 10px; margin-top: 3px; flex-wrap: wrap; }
+.sdlc-ref {
+  font: 500 11.5px/1.4 var(--font-mono);
+  color: var(--accent);
+  text-decoration: none;
+}
+.sdlc-ref:hover { text-decoration: underline; }
+.sdlc-chat-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border-color));
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  font: 600 12.5px/1.3 var(--font-sans);
+  text-decoration: none;
+}
+.sdlc-chat-link:hover { text-decoration: underline; background: color-mix(in srgb, var(--accent) 16%, transparent); }
+a.sdlc-ref.sdlc-chat-link { font: 600 12px/1.3 var(--font-sans); }
+#sdlc-ask-chat { margin: 0 0 12px; }
+.sdlc-ref-plain { color: var(--text-muted); }
+.sdlc-run-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-muted);
+  font: 500 10px/1.3 var(--font-mono);
+  cursor: pointer;
+}
+.sdlc-run-role[hidden] { display: none; }
+.sdlc-run-role:hover { color: var(--text-primary); border-color: var(--border-strong); }
+.sdlc-run-role > span:first-child { color: var(--accent); font-weight: 700; }
+.sdlc-run-role.is-done {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border-color));
+}
+.sdlc-run-role.is-done > span:first-child { color: var(--accent); }
+
+.sdlc-kind-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  font: 600 10px/1.3 var(--font-mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.sdlc-kind-badge.is-feature {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+}
+.sdlc-kind-badge.is-fix {
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  color: var(--warning);
+  border: 1px solid color-mix(in srgb, var(--warning) 28%, transparent);
+}
+
+.sdlc-state {
+  font: 600 10px/1.4 var(--font-mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.sdlc-state.running { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 45%, transparent); }
+.sdlc-state.ok      { color: var(--accent);  border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.sdlc-state.bad     { color: var(--error);   border-color: color-mix(in srgb, var(--error) 45%, transparent); }
+
+/* ── gates ─────────────────────────────────────────────────────────────── */
+
+.sdlc-gates { list-style: none; margin: 0; padding: 0; }
+
+.sdlc-gate {
+  position: relative;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 0 12px;
+  padding: 14px 0 0;
+}
+.sdlc-gate[hidden] { display: none; }
+
+/* The rail itself: drawn by each gate as the segment BELOW its own marker. */
+.sdlc-gate::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 26px;
+  bottom: -14px;
+  width: 0;
+  border-left: 1px dashed var(--border-strong);
+}
+.sdlc-gate:last-child::before { display: none; }
+.sdlc-gate.done::before { border-left-style: solid; border-left-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.sdlc-gate.bad::before  { border-left-style: solid; border-left-color: color-mix(in srgb, var(--error) 45%, transparent); }
+
+/* Square markers, not dots: these are gates you pass, not beads on a string. */
+.sdlc-gate-mark {
+  width: 11px;
+  height: 11px;
+  margin: 5px 0 0 7px;
+  border: 1px solid var(--border-strong);
+  border-radius: 2px;
+  background: var(--bg-tertiary);
+  transition: box-shadow .18s ease, background .18s ease, border-color .18s ease;
+}
+.sdlc-gate.done .sdlc-gate-mark {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.sdlc-gate.here .sdlc-gate-mark {
+  background: var(--warning);
+  border-color: var(--warning);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--warning) 18%, transparent);
+  animation: sdlc-pulse 1.8s ease-in-out infinite;
+}
+.sdlc-gate.bad .sdlc-gate-mark {
+  background: var(--error);
+  border-color: var(--error);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--error) 18%, transparent);
+}
+@keyframes sdlc-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--warning) 18%, transparent); }
+  50%      { box-shadow: 0 0 0 7px color-mix(in srgb, var(--warning) 6%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sdlc-gate.here .sdlc-gate-mark { animation: none; }
+}
+
+.sdlc-gate-body { min-width: 0; padding-bottom: 4px; }
+
+.sdlc-gate-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-height: 21px;
+}
+.sdlc-gate-toggle {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sdlc-gate-toggle::after {
+  content: "\203a";
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  font: 600 18px/1 var(--font-sans);
+  transform: rotate(0deg);
+  transition: transform .15s ease;
+}
+.sdlc-gate-toggle[aria-expanded="true"]::after { transform: rotate(90deg); }
+.sdlc-gate-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+.sdlc-gate-toggle:disabled { cursor: default; opacity: 1; }
+/* Sans = what you said. Mono = what the machine will do. */
+.sdlc-gate-name {
+  font: 600 11px/1.5 var(--font-sans);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.sdlc-gate-tag {
+  font: 600 11.5px/1.5 var(--font-mono);
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 1px 7px;
+}
+.sdlc-gate.done .sdlc-gate-tag { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+.sdlc-gate.here .sdlc-gate-tag { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 40%, transparent); }
+.sdlc-gate.bad  .sdlc-gate-tag { color: var(--error);   border-color: color-mix(in srgb, var(--error) 40%, transparent); }
+.sdlc-gate.done .sdlc-gate-name { color: var(--accent); }
+.sdlc-gate.here .sdlc-gate-name { color: var(--warning); }
+.sdlc-gate.bad  .sdlc-gate-name { color: var(--error); }
+
+.sdlc-gate-note {
+  font: 400 12.5px/1.5 var(--font-sans);
+  color: var(--text-secondary);
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sdlc-gate-clock {
+  font: 400 11px/1.5 var(--font-mono);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.sdlc-gate-clock.is-warn {
+  color: var(--warning);
+}
+.sdlc-gate-clock.is-cancelled {
+  color: var(--error);
+}
+.sdlc-fuse {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--warning) 45%, var(--border-color));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--warning) 8%, var(--bg-secondary));
+}
+.sdlc-fuse[hidden] { display: none !important; }
+.sdlc-fuse-reason {
+  margin: 0;
+  color: var(--text-secondary);
+  font: 400 12.5px/1.5 var(--font-sans);
+}
+.sdlc-fuse-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sdlc-stage-sessions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.sdlc-stage-session {
+  padding: 2px 6px;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border-color));
+  border-radius: var(--radius-pill);
+  color: var(--accent);
+  font: 500 10.5px/1.35 var(--font-mono);
+  text-decoration: none;
+}
+.sdlc-session-state {
+  margin-left: 4px;
+  color: var(--text-muted);
+  font-size: 9px;
+}
+.sdlc-stage-session.is-running {
+  border-color: color-mix(in srgb, var(--success) 62%, var(--border-color));
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 9%, transparent);
+}
+.sdlc-stage-session.is-done {
+  /* Same neon as generate / verify B links — not the duller --success. */
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border-color));
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.sdlc-stage-session.is-running .sdlc-session-state { color: var(--success); }
+.sdlc-stage-session.is-running .sdlc-session-state::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: 1px;
+}
+.sdlc-stage-session:hover { border-color: var(--accent); background: var(--accent-glow); }
+.sdlc-stage-session:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.sdlc-stage-session.is-pending {
+  color: var(--text-muted);
+  border-color: var(--border-color);
+  opacity: .5;
+}
+
+/* Only the gate you are on opens. Everything else is one line. */
+.sdlc-panel-body {
+  margin-top: 10px;
+  padding: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+}
+.sdlc-gate.collapsed .sdlc-panel-body,
+.sdlc-gate.collapsed .sdlc-evidence { display: none; }
+
+.sdlc-transcript {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+.sdlc-transcript:empty { display: none; }
+.sdlc-transcript-turn {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--border-color);
+  color: var(--text-secondary);
+  font: 400 12px/1.45 var(--font-sans);
+}
+.sdlc-transcript-turn strong { color: var(--text-primary); font-weight: 600; }
+.sdlc-transcript-source { color: var(--text-muted); font-size: 10px; text-transform: uppercase; }
+
+.sdlc-evidence {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  max-height: 200px;
+  overflow: auto;
+  border: 1px solid var(--border-color);
+  border-left: 2px solid var(--error);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font: 400 11px/1.55 var(--font-mono);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ── fields ────────────────────────────────────────────────────────────── */
+
+.sdlc-field { display: block; margin-bottom: 12px; }
+.sdlc-field:last-child { margin-bottom: 0; }
+.sdlc-label {
+  display: block;
+  margin-bottom: 5px;
+  font: 600 10.5px/1.4 var(--font-sans);
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.sdlc-label em {
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: .03em;
+  text-transform: none;
+  color: var(--text-muted);
+  opacity: .75;
+}
+.sdlc-field input[type="text"],
+.sdlc-field textarea,
+.sdlc-field select,
+.sdlc-row select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font: 400 13px/1.5 var(--font-sans);
+}
+.sdlc-field textarea { resize: vertical; min-height: 38px; }
+.sdlc-field input:focus-visible,
+.sdlc-field textarea:focus-visible,
+.sdlc-row select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.sdlc-row select { width: auto; min-width: 120px; }
+
+.sdlc-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.sdlc-field-inline { flex: 0 0 auto; margin-bottom: 0; }
+.sdlc-field-inline select { width: auto; min-width: 110px; }
+
+.sdlc-status {
+  font: 400 12px/1.4 var(--font-sans);
+  color: var(--text-muted);
+}
+.sdlc-status.bad { color: var(--error); }
+.sdlc-status.ok { color: var(--accent); }
+
+.sdlc-contract-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+.sdlc-contract-grid .sdlc-field { margin-bottom: 0; }
+.sdlc-contract-grid textarea { font: 400 12.5px/1.6 var(--font-mono); }
+
+/* ── clarify ───────────────────────────────────────────────────────────── */
+
+.sdlc-ask-host { margin-bottom: 12px; }
+.sdlc-ask-host .ask-user-form { max-width: none; }
+.sdlc-ask-host .ask-user-alternatives { display: none; }
+.sdlc-questions { display: grid; gap: 12px; margin-bottom: 12px; }
+.sdlc-q {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 0 10px;
+}
+.sdlc-qn {
+  font: 600 11px/1.7 var(--font-mono);
+  color: var(--text-muted);
+  text-align: right;
+}
+.sdlc-q label {
+  display: block;
+  font: 400 13px/1.5 var(--font-sans);
+  color: var(--text-primary);
+  margin-bottom: 5px;
+}
+.sdlc-q-why {
+  display: block;
+  margin: 2px 0 5px;
+  font: 400 11.5px/1.5 var(--font-sans);
+  color: var(--text-muted);
+}
+.sdlc-q textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font: 400 13px/1.5 var(--font-sans);
+  resize: vertical;
+}
+.sdlc-q textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.sdlc-q.answered .sdlc-qn { color: var(--accent); }
+
+/* ── ship: merge is a button, deploy is armed ──────────────────────────── */
+
+.sdlc-verification-summary {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+}
+.sdlc-vsummary-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.sdlc-vsummary-head .sdlc-label {
+  margin: 0;
+  color: var(--text-secondary);
+}
+.sdlc-vsummary-badge {
+  font: 600 10.5px/1.4 var(--font-mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  color: var(--success);
+  border: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
+}
+.sdlc-vsummary-badge.is-pending {
+  background: color-mix(in srgb, var(--bg-hover) 85%, transparent);
+  color: var(--text-muted);
+  border-color: var(--border-color);
+}
+.sdlc-vsummary-badge.is-blocked {
+  background: color-mix(in srgb, var(--error) 14%, transparent);
+  color: var(--error);
+  border-color: color-mix(in srgb, var(--error) 30%, transparent);
+}
+.sdlc-verification-badges {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+.sdlc-vbadge {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  transition: background 0.15s, border-color 0.15s;
+}
+.sdlc-vbadge:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+.sdlc-vbadge .sdlc-vicon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 11px;
+  background: color-mix(in srgb, var(--success) 20%, transparent);
+  color: var(--success);
+  flex-shrink: 0;
+}
+.sdlc-vbadge.is-pending .sdlc-vicon {
+  background: color-mix(in srgb, var(--text-muted) 20%, transparent);
+  color: var(--text-muted);
+}
+.sdlc-vbadge.is-failed .sdlc-vicon {
+  background: color-mix(in srgb, var(--error) 20%, transparent);
+  color: var(--error);
+}
+.sdlc-vcontent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.3;
+  min-width: 0;
+}
+.sdlc-vcontent strong {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sdlc-vsub {
+  font: 400 10.5px/1.35 var(--font-sans);
+  color: var(--text-secondary);
+  word-break: break-word;
+}
+
+.sdlc-ship-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+.sdlc-ship-cell { min-width: 0; }
+.sdlc-armed-cell {
+  padding: 10px 12px;
+  margin: -10px -12px;
+  border: 1px solid color-mix(in srgb, var(--warning) 28%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--warning) 4%, transparent);
+}
+.sdlc-arm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  font: 600 11px/1.4 var(--font-mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+.sdlc-arm input { accent-color: var(--warning); margin: 0; }
+.sdlc-arm:has(input:checked) {
+  color: var(--warning);
+  border-color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+}
+.sdlc-arm-detail {
+  margin: 7px 0 0;
+  font: 400 11.5px/1.5 var(--font-sans);
+  color: var(--text-muted);
+}
+
+/* ── foot ──────────────────────────────────────────────────────────────── */
+
+.sdlc-flight-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+  flex-wrap: wrap;
+}
+.sdlc-raw { flex: 1 1 100%; }
+
+.sdlc-log { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 3px; }
+.sdlc-ev {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  padding: 4px 9px;
+  border-left: 2px solid var(--border-strong);
+  background: var(--bg-tertiary);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font: 400 11.5px/1.6 var(--font-mono);
+}
+/* A run whose gates went unusable still merges to nothing: the backend blocks
+   it. The operator has to be able to see WHY without opening the raw log. */
+.sdlc-warn {
+  margin: 8px 0 0;
+  padding: 7px 10px;
+  border-left: 2px solid var(--warning);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  font: 400 11.5px/1.6 var(--font-sans);
+}
+.sdlc-warn-settled {
+  border-left-color: var(--text-muted);
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+}
+.sdlc-ev.ok  { border-left-color: var(--accent); }
+.sdlc-ev.bad { border-left-color: var(--error); }
+.sdlc-ev.run { border-left-color: var(--warning); }
+.sdlc-ev-tag { color: var(--text-primary); }
+.sdlc-ev-status { color: var(--text-muted); text-transform: uppercase; font-size: 10px; letter-spacing: .06em; }
+.sdlc-ev-note { color: var(--text-secondary); flex: 1 1 auto; min-width: 0; font-family: var(--font-sans); }
+.sdlc-ev time { margin-left: auto; color: var(--text-muted); white-space: nowrap; }
+
+/* ══ context rail ══════════════════════════════════════════════════════ */
+
+.dev-panel {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+.dev-panel h2 {
+  margin: 0;
+  padding: 11px 13px 7px;
+  font: 600 10.5px/1.4 var(--font-sans);
+  color: var(--text-muted);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.dev-panel > div { overflow-y: auto; }
+.dev-issues-panel { flex: 0 0 auto; }
+.dev-prs-panel { flex: 0 0 auto; }
+.dev-list-panel { flex: 1 1 auto; min-height: 132px; }
+
+.dev-chiprow { display: flex; gap: 4px; padding: 0 13px 8px; flex-wrap: wrap; }
+.dev-chip {
+  padding: 3px 9px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-muted);
+  font: 500 10.5px/1.4 var(--font-mono);
+  cursor: pointer;
+}
+.dev-chip:hover { color: var(--text-secondary); border-color: var(--border-strong); }
+.dev-chip.active { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+
+.dev-linkish {
+  margin: 0;
+  padding: 8px 13px 11px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: 500 11.5px/1.4 var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+.dev-linkish:hover { color: var(--accent); }
+
+.sdlc-runs-card {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+.sdlc-runs-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.sdlc-runs-card > .sdlc-show-archived,
+.sdlc-runs-head .sdlc-show-archived {
+  padding: 11px 13px 0 0;
+  margin: 0;
+}
+.sdlc-runs-list { display: grid; gap: 3px; padding: 0 8px 9px; }
+.sdlc-runs-card .sdlc-runs-list {
+  grid-template-columns: minmax(0, 1fr);
+  /* Three rows visible; the rest scroll so the card cannot grow with the list. */
+  max-height: calc(3 * 46px + 2 * 3px);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.sdlc-run-card {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 9px;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.sdlc-run-card:hover { background: var(--bg-hover); }
+.sdlc-run-card.active { background: var(--bg-active); border-color: var(--border-strong); }
+.sdlc-run-dot {
+  width: 7px; height: 7px; border-radius: 2px;
+  background: var(--text-muted);
+}
+.sdlc-run-card.is-running .sdlc-run-dot { background: var(--warning); }
+.sdlc-run-card.is-done .sdlc-run-dot { background: var(--accent); }
+.sdlc-run-card.is-archived { opacity: 0.65; }
+.sdlc-run-card.is-archived .sdlc-run-dot { background: var(--muted); }
+.sdlc-show-archived {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.sdlc-run-card.is-bad .sdlc-run-dot { background: var(--error); }
+.sdlc-run-object {
+  display: block;
+  font: 500 12.5px/1.35 var(--font-sans);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sdlc-run-meta {
+  display: block;
+  margin-top: 1px;
+  font: 400 10.5px/1.4 var(--font-mono);
+  color: var(--text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sdlc-empty {
+  padding: 4px 13px 12px;
+  font: 400 12px/1.5 var(--font-sans);
+  color: var(--text-muted);
+}
+
+
+
+/* [hidden] must actually hide. Every flex/grid/inline-flex rule in this file
+   (and in loops.css, which these buttons borrow) out-specifies the UA's
+   [hidden]{display:none}, so JS setting .hidden silently no-ops. This has
+   shipped as a bug seven times in this codebase — pin it once, here. */
+#dev-app [hidden] { display: none !important; }
+
+/* The rail is drawn as the segment BELOW each marker, so the last VISIBLE
+   gate must not draw one. :last-child can't see past hidden siblings; the
+   view marks it instead. */
+.sdlc-gate.is-last::before { display: none; }
+
+/* Nothing in flight: the foot has nothing to say. */
+.sdlc-flight-foot[hidden] { display: none !important; }
+
+/* Header: the repo picker belongs with the controls, not on its own line. */
+.mon-header-right .dev-repo-field { margin: 0; }
+.mon-header-right .dev-repo-field select {
+  min-width: 180px;
+  max-width: 240px;
+  font: 500 12px/1.4 var(--font-mono);
+}
+
+.sdlc-flight-head .loop-primary-btn { white-space: nowrap; flex: 0 0 auto; }
+.sdlc-flight-head .sdlc-state { flex: 0 0 auto; }
+
+/* Suggested answers. The model fills every box; the tag says whose words they
+   still are, so accepting a suggestion is a visible act rather than a silent
+   default. */
+.sdlc-suggest-hint {
+  margin: 0 0 12px;
+  padding: 8px 11px;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  font: 400 12px/1.55 var(--font-sans);
+  color: var(--text-secondary);
+}
+.sdlc-suggest-hint em {
+  font-style: normal;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+}
+
+.sdlc-a-wrap { position: relative; }
+.sdlc-q-state {
+  position: absolute;
+  right: 8px;
+  bottom: 7px;
+  font: 500 9.5px/1.4 var(--font-mono);
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
+.sdlc-q[data-state="suggested"] textarea {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--border-color));
+  color: var(--text-secondary);
+}
+.sdlc-q[data-state="suggested"] .sdlc-q-state { color: var(--accent); }
+.sdlc-q[data-state="yours"] textarea { border-color: var(--border-strong); color: var(--text-primary); }
+.sdlc-q[data-state="yours"] .sdlc-q-state { color: var(--text-secondary); }
+.sdlc-q[data-state="yours"] .sdlc-qn { color: var(--accent); }
+
+.sdlc-inline-link { padding: 0; font-size: 11.5px; }
+
+/* Every control in this tab, on the tab's own surface. A bare <select> renders
+   with the UA's white chrome, which reads as a hole punched in a dark page —
+   the repo picker in the header did exactly that. Style them all in one place
+   rather than per-control, and paint <option> too: the popup list is drawn by
+   the platform and inherits nothing from the closed control. */
+#dev-app select,
+#dev-app input[type="text"],
+#dev-app input[type="search"],
+#dev-app textarea {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font: 400 13px/1.5 var(--font-sans);
+}
+#dev-app select {
+  padding: 7px 28px 7px 10px;
+  cursor: pointer;
+  /* Inline chevron: an SVG data URI keeps it themeable with currentColor's
+     hex baked in, and avoids shipping another asset for one glyph. */
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b8d99' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+}
+#dev-app select:hover { border-color: var(--border-strong); }
+#dev-app select:focus-visible,
+#dev-app input:focus-visible,
+#dev-app textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+#dev-app select option,
+#dev-app select optgroup {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+#dev-app select:disabled,
+#dev-app input:disabled,
+#dev-app textarea:disabled { opacity: .55; cursor: not-allowed; }
+
+/* The worktree path is long and secondary to the branch: show it, but let it
+   yield first when the header runs out of room. */
+.sdlc-ref-wt {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: .75;
+}
+
+/* ══ small screens ═══════════════════════════════════════════════════════
+   This tab is used on a phone. Two things change, not just the column count:
+
+   1. The page scrolls, not an inner box. On desktop #dev-app is a fixed-height
+      flex column with its own scrollers; on a phone that traps the content in
+      a short viewport under the keyboard.
+   2. The rail gutter collapses. 26px of gutter is affordable at 1400px and
+      expensive at 390px, so below 640 the marker moves inline with the gate
+      name and the body reclaims the full width. */
+
+@media (max-width: 900px) {
+  body.monitor-body {
+    height: auto;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  #dev-app {
+    height: auto;
+    max-height: none;
+    min-height: 100dvh;
+    overflow: visible;
+    padding: 0 12px 16px;
+  }
+  .dev-main {
+    gap: 14px;
+    overflow: visible;
+  }
+  .dev-workspace {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    overflow: visible;
+  }
+  .sdlc-flight { overflow: visible; }
+  .sdlc-ship-row { grid-template-columns: 1fr; }
+  .sdlc-armed-cell { margin: 0; }
+
+  /* Stacked panels must size to their content: the desktop flex ratios
+     collapse them to a bare heading in a column layout. */
+  .dev-side { overflow: visible; }
+  .dev-panel { flex: 0 0 auto; }
+  .dev-panel > div { max-height: 46vh; }
+
+  .mon-header-right { flex-wrap: wrap; row-gap: 6px; }
+  .mon-header-right .dev-repo-field { flex: 1 1 100%; }
+  .mon-header-right .dev-repo-field select { max-width: none; width: 100%; }
+  #dev-updated { display: none; }
+}
+
+@media (max-width: 640px) {
+  /* Block, not grid: the marker floats into the heading line instead of
+     claiming a row of its own on a 390px screen. */
+  .sdlc-gate { display: block; padding-top: 16px; }
+  /* No gutter to draw the rail in; separate gates with a rule instead. */
+  .sdlc-gate::before { display: none; }
+  .sdlc-gate + .sdlc-gate { border-top: 1px solid var(--border-color); }
+  .sdlc-gate-mark {
+    float: left;
+    margin: 5px 9px 0 0;
+    width: 9px;
+    height: 9px;
+  }
+  .sdlc-gate-head { flex-wrap: wrap; row-gap: 2px; }
+  .sdlc-gate-note { flex-basis: 100%; white-space: normal; }
+  .sdlc-gate-clock { flex-basis: 100%; white-space: normal; }
+  .sdlc-stage-sessions {
+    margin-left: auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    white-space: normal;
+  }
+  .sdlc-stage-session { min-height: 32px; display: inline-flex; align-items: center; }
+  .sdlc-panel-body { padding: 12px; }
+  .sdlc-flight-head { flex-wrap: wrap; row-gap: 8px; }
+  .sdlc-flight-title { flex: 1 1 100%; order: -1; }
+  .sdlc-flight-title h2 { white-space: normal; font-size: 16px; }
+
+  /* Touch targets. 40px is the floor; the compact desktop sizes are not
+     tappable. */
+  #dev-app button,
+  #dev-app select,
+  #dev-app .sdlc-arm { min-height: 40px; }
+  #dev-app .dev-chip { min-height: 32px; padding: 6px 12px; }
+  #dev-app .icon-btn { min-width: 40px; }
+  .sdlc-row { row-gap: 8px; }
+  .sdlc-field-inline { flex: 1 1 130px; }
+  .sdlc-field-inline select { width: 100%; }
+  .sdlc-row > .loop-primary-btn { flex: 1 1 auto; }
+  .sdlc-status { flex-basis: 100%; }
+
+  .sdlc-q { grid-template-columns: minmax(0, 1fr); }
+  .sdlc-qn { text-align: left; margin-bottom: 2px; }
+  /* Narrow answers wrap under the floating tag; put it below the box instead
+     of over the operator's last line. */
+  .sdlc-q-state {
+    position: static;
+    display: block;
+    width: fit-content;
+    margin: 4px 0 0 auto;
+    background: transparent;
+    padding: 0;
+  }
+  .sdlc-ev { flex-wrap: wrap; row-gap: 2px; }
+  .sdlc-ev-note { flex-basis: 100%; }
+  .sdlc-ev time { margin-left: 0; }
+  .sdlc-ref-wt { display: none; }  /* the branch already identifies the run */
+  .sdlc-verification-summary {
+    padding: 10px 12px;
+    margin-bottom: 12px;
+  }
+  .sdlc-verification-badges {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .sdlc-vbadge {
+    width: 100%;
+    padding: 8px 10px;
+  }
+}
+
+/* ══ agent & model picker ════════════════════════════════════════════════
+   A bottom sheet on a phone, a centred dialog on a desktop — the same
+   component, because the choice is the same choice. */
+
+.sdlc-roles-field { flex: 1 1 430px; min-width: 0; }
+.sdlc-role-pickers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+.sdlc-who {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  width: 100%;
+  padding: 6px 10px;
+  text-align: left;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.sdlc-role-name {
+  font: 600 9px/1.25 var(--font-mono);
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.sdlc-who:hover { border-color: var(--border-strong); }
+.sdlc-who:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.sdlc-who-agent { font: 600 13px/1.35 var(--font-sans); }
+.sdlc-who-model {
+  font: 400 10.5px/1.35 var(--font-mono);
+  color: var(--text-secondary);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sdlc-who-model.is-default { color: var(--text-muted); font-style: italic; }
+.sdlc-who-generate .sdlc-who-agent { color: var(--text-secondary); }
+
+.amp-dev-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(0, 0, 0, .55);
+}
+.amp-dev {
+  position: fixed;
+  z-index: 91;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(720px, calc(100dvh - 48px));
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  background: var(--bg-secondary);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, .55);
+}
+.amp-dev-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+.amp-dev-head h2 { margin: 0; font: 600 14px/1.3 var(--font-sans); flex: 1 1 auto; }
+.amp-dev-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 16px;
+  display: grid;
+  gap: 18px;
+}
+.amp-dev-body .sdlc-label { margin-bottom: 8px; }
+
+.amp-dev-agents {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 8px;
+}
+.amp-dev-agent {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  text-align: left;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.amp-dev-agent:hover { border-color: var(--border-strong); }
+.amp-dev-agent:disabled { opacity: .42; cursor: not-allowed; }
+.amp-dev-agent.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-tertiary));
+}
+.amp-dev-agent-name { font: 600 13px/1.3 var(--font-sans); }
+.amp-dev-agent.active .amp-dev-agent-name { color: var(--accent); }
+.amp-dev-agent-desc { font: 400 11.5px/1.45 var(--font-sans); color: var(--text-muted); }
+
+.amp-dev-models { display: grid; gap: 5px; max-height: 300px; overflow-y: auto; }
+.amp-dev-model {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 11px;
+  text-align: left;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.amp-dev-model:hover { border-color: var(--border-strong); }
+.amp-dev-model.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-tertiary));
+}
+.amp-dev-model-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font: 500 13px/1.35 var(--font-sans);
+}
+.amp-dev-model.active .amp-dev-model-title { color: var(--accent); }
+.amp-dev-model-sub { font: 400 10.5px/1.4 var(--font-mono); color: var(--text-muted); }
+.amp-dev-pill {
+  font: 600 9px/1.4 var(--font-mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+}
+
+.amp-dev-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-color);
+}
+.amp-dev-actions .loop-action-btn { margin-right: auto; }
+
+@media (max-width: 640px) {
+  /* Bottom sheet: thumb-reachable, and it never fights the address bar. */
+  .amp-dev {
+    left: 0;
+    top: auto;
+    bottom: 0;
+    transform: none;
+    width: 100%;
+    max-height: 88dvh;
+    border-radius: 16px 16px 0 0;
+    border-bottom: 0;
+  }
+  .amp-dev-agents { grid-template-columns: 1fr; }
+  .amp-dev-models { max-height: none; }
+  .amp-dev-actions .loop-primary-btn { flex: 1 1 auto; }
+  .sdlc-start-row { align-items: stretch; }
+  .sdlc-roles-field { flex-basis: 100%; }
+  .sdlc-role-pickers { grid-template-columns: 1fr; }
+  .sdlc-role-pickers .sdlc-who {
+    display: grid;
+    grid-template-columns: 86px minmax(72px, auto) minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+  }
+  .sdlc-role-pickers .sdlc-who-model { justify-self: end; }
+}
+
+
+/* Closed loops keeps its "Start a bare loop" button OUTSIDE the scrolling div,
+   so shrinking the panel clips the button instead of scrolling to it. It needs
+   a floor of its own chrome.
+   This MUST sit after `.dev-panel { min-height: 0 }` above: both selectors are
+   one class, so specificity ties and source order decides -- setting it up with
+   the other .dev-list-panel rules computed to 0px and did nothing.
+   96px border-box, because clientHeight excludes the 1px borders. */
+/* Floors, because a panel squeezed below its own chrome does not scroll -- it
+   renders its header and silently drops the message under it. Measured from
+   the rendered page: header 33, chip row 31, "Start a bare loop" 35, and the
+   empty-state line ~40.
+   These MUST sit after `.dev-panel { min-height: 0 }`: one class each, so the
+   specificity ties and source order decides. */
+.dev-list-panel   { min-height: 132px; }
+.dev-prs-panel    { min-height: 230px; }
+.dev-issues-panel { min-height: 320px; }
+
+/* Chip rows and the h2 are chrome, not content: when the column runs short they
+   were flex-shrunk (the loops filter collapsed from 26px to 9px and read as a
+   clipped row) instead of the scrolling list absorbing it. */
+.dev-panel > h2, .dev-panel > .dev-chiprow { flex: 0 0 auto; }
+
+/* ── The life-cycle hero ──────────────────────────────────────────────────
+   First thing on the tab, full content width. Text is the explanation;
+   figures sit under it and never steal a column from the phase list.
+   Layout follows the CONTENT box (container queries), not the viewport —
+   the pinned sidebar makes a "desktop" window a phone-wide pane. */
+.sdlc-cycle-hero {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  padding: 14px 16px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+}
+.sdlc-cycle-head {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  list-style-position: inside;
+}
+.sdlc-cycle-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+}
+.sdlc-cycle-head h2 {
+  margin: 0;
+  font: 600 15px/1.3 var(--font-sans);
+  color: var(--text-primary);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.sdlc-phase-strip {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+}
+.sdlc-phase-strip .sdlc-phase {
+  flex: 1 1 7.5rem;
+  min-width: 6.5rem;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  padding: 6px 8px;
+  border-left: 0;
+  border-bottom: 2px solid transparent;
+  background: var(--bg-tertiary);
+}
+.sdlc-phase-strip .sdlc-phase.here {
+  border-bottom-color: var(--accent, #7c5cff);
+  background: var(--bg-hover);
+}
+.sdlc-phase-strip .sdlc-phase-name { font-size: 11.5px; }
+.sdlc-cycle-now {
+  margin: 0;
+  font: 600 11px/1.4 var(--font-mono);
+  color: var(--text-muted);
+  letter-spacing: .02em;
+}
+.sdlc-cycle-lede {
+  margin: 0 0 12px;
+  width: 100%;
+  font: 400 13.5px/1.55 var(--font-sans);
+  color: var(--text-secondary);
+}
+.sdlc-subcards {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+.sdlc-subcard {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-primary);
+  padding: 0 12px 12px;
+  min-width: 0;
+}
+.sdlc-subcard > summary {
+  cursor: pointer;
+  font: 600 12.5px/1.4 var(--font-sans);
+  color: var(--text-secondary);
+  padding: 10px 2px;
+  list-style-position: inside;
+}
+.sdlc-subcard > summary:hover { color: var(--text-primary); }
+.sdlc-subcard-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  align-items: start;
+  min-width: 0;
+}
+.sdlc-phases {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  width: 100%;
+}
+.sdlc-phase {
+  display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px;
+  align-items: start;
+  padding: 8px 10px; border-radius: 6px;
+  border-left: 2px solid transparent;
+}
+.sdlc-phase-n {
+  font-variant-numeric: tabular-nums; font-weight: 600; font-size: 12px;
+  line-height: 18px; text-align: center; color: var(--text-muted);
+}
+.sdlc-phase-body { display: grid; gap: 2px; min-width: 0; }
+.sdlc-phase-name { font-size: 13.5px; font-weight: 600; color: var(--text-secondary); }
+.sdlc-phase-gates {
+  font-size: 11px; font-family: var(--font-mono, ui-monospace, monospace);
+  color: var(--text-muted); letter-spacing: .02em;
+}
+.sdlc-phase-note { font-size: 12px; line-height: 1.45; color: var(--text-muted); }
+.sdlc-phase.here {
+  background: var(--bg-hover);
+  border-left-color: var(--accent, #7c5cff);
+}
+.sdlc-phase.here .sdlc-phase-n,
+.sdlc-phase.here .sdlc-phase-name { color: var(--text-primary); }
+.sdlc-phase.out { opacity: .5; }
+.sdlc-phase.out .sdlc-phase-gates { font-style: italic; font-family: inherit; }
+
+.sdlc-wheel, .sdlc-vmodel {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  border-radius: 8px;
+  min-width: 0;
+}
+.sdlc-wheel { max-width: 400px; }
+.sdlc-vmodel { max-width: 500px; }
+.sdlc-vee-lede {
+  margin: 6px 0 10px; font-size: 12.5px; line-height: 1.5; color: var(--text-muted);
+}
+.sdlc-vee-lede strong { color: var(--text-secondary); font-weight: 600; }
+.sdlc-vee-pairs {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: 1fr; gap: 8px;
+}
+.sdlc-vee-pairs li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 4px 8px; align-items: baseline;
+  padding: 8px 10px; border-radius: 6px; background: var(--bg-tertiary);
+}
+.sdlc-vee-l, .sdlc-vee-r { font-size: 12px; font-weight: 600; min-width: 0; }
+.sdlc-vee-l { color: var(--text-secondary); }
+.sdlc-vee-r {
+  color: var(--text-secondary); text-align: right;
+  font-family: var(--font-mono, ui-monospace, monospace); font-weight: 500;
+}
+.sdlc-vee-arrow { color: var(--text-muted); font-size: 12px; }
+.sdlc-vee-how {
+  grid-column: 1 / -1; font-size: 11.5px; line-height: 1.4;
+  color: var(--text-muted);
+}
+
+/* Content-box breakpoints. A 1400px window with the sidebar open is ~1100px
+   of Dev, not 1400 — and a 390px phone is 390 of Dev. */
+@container dev (min-width: 720px) {
+  .sdlc-role-pickers { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sdlc-subcard-body {
+    grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
+    align-items: center;
+  }
+}
+@container dev (min-width: 960px) {
+  .dev-workspace { grid-template-columns: minmax(0, 1fr) minmax(240px, 300px); }
+  .sdlc-phase-note { display: block; }
+}
+@container dev (max-width: 719px) {
+  .sdlc-role-pickers { grid-template-columns: 1fr; }
+  .sdlc-roles-field { flex: 1 1 100%; }
+  .sdlc-start-row { align-items: stretch; }
+  .sdlc-role-pickers .sdlc-who {
+    display: grid;
+    grid-template-columns: 86px minmax(72px, auto) minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+  }
+  .sdlc-role-pickers .sdlc-who-model { justify-self: end; }
+  .loops-title-block p { display: none; }
+}
+@container dev (max-width: 559px) {
+  .sdlc-phase-note { display: none; }
+  .sdlc-vee-pairs li {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .sdlc-vee-r { text-align: left; }
+  .sdlc-vee-arrow { display: none; }
+}
+
+/* The force-merge override only appears once the gate has named its blockers. */
+.sdlc-force-row { margin-top: 6px; }
+.sdlc-force-row .sdlc-arm { color: var(--danger, #ef6b73); font-size: 11px; }
+
+/* ── describe composer (same Chat input: attach + voice) ─────────────── */
+.sdlc-composer { margin: 0 0 12px; }
+.sdlc-composer.dropping {
+  outline: 1px dashed var(--accent, #7c5cff);
+  outline-offset: 3px;
+}
+.sdlc-composer-status {
+  display: block;
+  min-height: 1em;
+  margin: 6px 2px 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── intake attachments ───────────────────────────────────────────────────
+   The drop target is the whole field, not just the textarea: aiming at a
+   2-row box is fiddly, and the label and chips read as part of the same
+   surface. */
+.sdlc-detail-field { display: grid; gap: 4px; border-radius: 8px; }
+.sdlc-detail-field.dropping {
+  outline: 1px dashed var(--accent, #7c5cff);
+  outline-offset: 3px;
+  background: color-mix(in srgb, var(--accent, #7c5cff) 7%, transparent);
+}
+.sdlc-attach-row { display: flex; align-items: center; gap: 8px; }
+.sdlc-attach-hint { font-size: 11px; color: var(--text-muted); }
+.sdlc-attach-list { list-style: none; margin: 2px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 5px; }
+.sdlc-attach-list:empty { margin: 0; }
+.sdlc-attach-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 6px 3px 9px;
+  border: 1px solid var(--border-color); border-radius: var(--radius-pill);
+  background: var(--bg-tertiary); font-size: 11px; max-width: 100%;
+}
+.sdlc-attach-name {
+  color: var(--text-secondary); overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; max-width: 190px;
+}
+.sdlc-attach-size { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.sdlc-attach-x {
+  border: 0; background: transparent; cursor: pointer; padding: 0 2px;
+  color: var(--text-muted); font-size: 14px; line-height: 1;
+}
+.sdlc-attach-x:hover { color: var(--error, #ef6b73); }
+
+/* Put the decision and active change first; reference material stays below. */
+.dev-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  flex: 0 0 auto;
+  padding: 24px;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--accent) 9%, var(--bg-secondary)), var(--bg-secondary));
+}
+.dev-eyebrow {
+  color: var(--accent);
+  font: 600 11px/1.5 var(--font-sans);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.dev-overview h2 {
+  margin: 6px 0 8px;
+  color: var(--text-primary);
+  font: 600 clamp(20px, 2.2vw, 28px)/1.25 var(--font-sans);
+  letter-spacing: -.025em;
+}
+.dev-overview p {
+  margin: 0;
+  max-width: 78ch;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.dev-journey {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.dev-journey li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 2px solid var(--border-color);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.dev-journey li > span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  font-size: 11px;
+}
+.dev-journey .is-current { color: var(--text-primary); border-color: var(--accent); }
+.dev-journey .is-current > span { background: var(--accent); color: var(--bg-primary); }
+.dev-journey .is-complete { border-color: var(--success); color: var(--text-secondary); }
+.dev-overview .dev-sync-status { color: var(--warning); }
+.dev-workspace { align-items: start; min-width: 0; }
+.sdlc-flight {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+}
+.sdlc-flight-title h2 { white-space: normal; overflow-wrap: anywhere; line-height: 1.45; }
+.sdlc-flight-meta { gap: 6px 12px; }
+.sdlc-ref-wt { display: none; }
+.dev-options {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+}
+.dev-options > summary { cursor: pointer; font-size: 12px; color: var(--text-secondary); }
+.dev-options > summary > span { margin-left: 8px; color: var(--text-muted); font-size: 11px; }
+.dev-options[open] > summary { margin-bottom: 16px; }
+.dev-start-actions { gap: 10px 16px; }
+.dev-delivery-summary {
+  flex: 1 0 100%;
+  margin: 8px 0;
+  padding: 10px 12px;
+  border-left: 2px solid var(--accent);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.sdlc-runs-head { align-items: center; padding: 12px 14px; }
+.sdlc-runs-head h2 { padding: 0; margin: 0; font-size: 13px; }
+.dev-count { color: var(--text-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.dev-side .sdlc-runs-list { max-height: 290px; }
+.dev-side .dev-issues-panel, .dev-side .dev-prs-panel { min-height: 0; }
+.dev-side .dev-issues, .dev-side .dev-prs { min-height: 0; }
+.dev-side .sdlc-empty { line-height: 1.6; }
+.sdlc-cycle-hero:not([open]) .sdlc-phase-strip { display: none; }
+.sdlc-cycle-hero:not([open]) .sdlc-cycle-head { margin-bottom: 0; }
+#dev-app :is(button, select, textarea, input, summary, a):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+/* Assistive-technology text on the role chips: the template used the class
+   with no rule behind it, so "Change orchestrate model" printed beside each
+   chip. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@container dev (max-width: 719px) {
+  .dev-overview { padding: 18px; gap: 14px; }
+  .sdlc-flight { padding: 14px; }
+  .dev-journey { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dev-options > summary > span { display: block; margin: 6px 0 0; }
+  .sdlc-flight-head { flex-wrap: wrap; }
+  .sdlc-flight-title { flex-basis: 100%; }
+  .dev-start-actions > .loop-primary-btn, #sdlc-ratify { min-height: 44px; }
+  .sdlc-run-card { min-height: 44px; }
+}

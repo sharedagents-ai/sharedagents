@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>{{ site_title }} · usage</title>
+<meta name="sharedagents-base" content="{{ base }}">
+<link rel="stylesheet" href="{{ base }}/static/style.css?v={{ asset_rev('style.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/menu.css?v={{ asset_rev('menu.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/agents.css?v={{ asset_rev('agents.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/usage.css?v={{ asset_rev('usage.css') }}">
+{% include "_ui_zoom.html" %}
+</head>
+<body class="monitor-body usage-body">
+{% set active = 'usage' %}
+{% include "_menu.html" %}
+{% from "_menu.html" import menu_button %}
+
+<div id="usage-app" class="is-loading">
+  <header class="mon-header usage-header">
+    {{ menu_button() }}
+    <a class="mon-logo" href="{{ base }}/" title="Back to chat">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+        <path d="M2 17l10 5 10-5"/>
+        <path d="M2 12l10 5 10-5"/>
+      </svg>
+      <span>{{ site_title }}</span>
+    </a>
+    <div class="mon-title">
+      <h1>Usage</h1>
+      <span id="usage-conn" class="mon-conn mon-conn-live" title="Usage API status"></span>
+    </div>
+    <div class="mon-header-right">
+      <button type="button" id="usage-refresh" class="icon-btn" title="Refresh usage" aria-label="Refresh usage">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12a9 9 0 1 1-3-6.7"/>
+          <path d="M21 3v6h-6"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <section class="usage-toolbar" aria-label="Usage controls">
+    <nav class="usage-tabs" role="tablist" aria-label="Usage views">
+      <button type="button" id="usage-tab-usage" class="usage-tab is-active" role="tab"
+              aria-selected="true" aria-controls="usage-pane-usage" data-usage-tab="usage">Usage</button>
+      <button type="button" id="usage-tab-api" class="usage-tab" role="tab"
+              aria-selected="false" aria-controls="usage-pane-api"
+              data-usage-tab="api">API</button>
+      <button type="button" id="usage-tab-subscriptions" class="usage-tab" role="tab"
+              aria-selected="false" aria-controls="usage-pane-subscriptions"
+              data-usage-tab="subscriptions">Subscriptions</button>
+      <button type="button" id="usage-tab-prices" class="usage-tab" role="tab"
+              aria-selected="false" aria-controls="usage-pane-prices" data-usage-tab="prices">Prices</button>
+      <button type="button" id="usage-tab-logs" class="usage-tab" role="tab"
+              aria-selected="false" aria-controls="usage-pane-logs" data-usage-tab="logs">Logs</button>
+    </nav>
+  </section>
+
+  <main class="usage-main">
+    <div id="usage-pane-usage" class="usage-pane is-active" role="tabpanel" aria-labelledby="usage-tab-usage">
+    <section class="usage-panel usage-chart-panel usage-chart-only" aria-labelledby="usage-chart-title">
+      <header class="usage-panel-header">
+        <h2 id="usage-chart-title">Output tokens by provider and model</h2>
+        <div class="usage-chart-controls">
+          <div class="usage-view-toggle" role="group" aria-label="Time window">
+            <button type="button" data-chart-window="24h">24h</button>
+            <button type="button" class="active" data-chart-window="7d" aria-pressed="true">7d</button>
+            <button type="button" data-chart-window="30d">30d</button>
+            <button type="button" data-chart-window="90d">90d</button>
+            <button type="button" data-chart-window="365d">365d</button>
+          </div>
+          <div class="usage-view-toggle" role="group" aria-label="Group by">
+            <button type="button" class="active" data-chart-group="provider" aria-pressed="true">Provider</button>
+            <button type="button" data-chart-group="model">Model</button>
+          </div>
+          <div class="usage-view-toggle" role="group" aria-label="Metric">
+            <button type="button" class="active" data-chart-metric="tokens" aria-pressed="true">Output</button>
+            <button type="button" data-chart-metric="cost">Cost</button>
+            <button type="button" data-chart-metric="requests">Requests</button>
+          </div>
+          <div class="usage-view-toggle" role="group" aria-label="Series">
+            <button type="button" class="active" data-chart-mode="bucket" aria-pressed="true">Bucket</button>
+            <button type="button" data-chart-mode="cumulative">Cumulative</button>
+          </div>
+        </div>
+      </header>
+      <div id="usage-chart" class="usage-chart" role="img" aria-label="Usage over time"></div>
+      <div id="usage-chart-legend" class="usage-chart-legend"></div>
+      <div class="usage-chart-table-wrap">
+        <table id="usage-chart-table" class="usage-chart-table" aria-label="Usage by time"></table>
+      </div>
+    </section>
+    </div>
+
+    <div id="usage-pane-prices" class="usage-pane" role="tabpanel" aria-labelledby="usage-tab-prices" hidden>
+    <section class="usage-panel usage-prices-panel" aria-labelledby="usage-prices-title">
+      <header class="usage-panel-header">
+        <h2 id="usage-prices-title">Model prices</h2>
+        <div class="usage-prices-actions">
+          <span class="usage-generations-meta" id="usage-prices-meta">USD per 1M tokens</span>
+          <button type="button" id="usage-prices-add" class="usage-prices-save">Add price</button>
+        </div>
+      </header>
+      <details class="usage-legend-details" id="usage-prices-legend">
+        <summary class="usage-legend-toggle">
+          <svg class="usage-legend-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          <span>Legend</span>
+        </summary>
+        <div class="usage-legend-body">
+          <p id="usage-prices-note" class="usage-prices-note">
+            Prices are in USD per one million tokens. Cache read and write rates use the input
+            price when no separate rate is set. Automatic prices follow the model catalogue;
+            custom prices are your overrides and take priority. Built-in prices are bundled
+            with the app. Edit and save one row at a time. Existing peak-price schedules stay in place.
+          </p>
+        </div>
+      </details>
+      <div class="usage-price-filters" role="group" aria-label="Price filters">
+        <label class="usage-price-search">Search models
+          <input id="usage-prices-search" type="search" placeholder="Model, alias or provider…" autocomplete="off">
+        </label>
+        <label>Provider <select id="usage-prices-provider"><option value="">All providers</option></select></label>
+        <label>Price source
+          <select id="usage-prices-source">
+            <option value="">All sources</option><option value="auto">Automatic</option>
+            <option value="operator">Custom</option><option value="bundled">Built-in</option>
+          </select>
+        </label>
+        <button type="button" id="usage-prices-clear" class="usage-price-button">Clear filters</button>
+      </div>
+      <p id="usage-prices-message" class="usage-price-message" role="status" aria-live="polite">Select Edit to change one model's prices.</p>
+      <div class="usage-generations-scroll usage-prices-scroll" tabindex="0" role="region" aria-label="Model price table">
+        <table class="usage-generations-table usage-prices-table" aria-label="Registered model prices">
+          <thead>
+            <tr>
+              <th scope="col" aria-sort="none"><button type="button" data-price-sort="provider">Provider</button></th>
+              <th scope="col" aria-sort="ascending"><button type="button" data-price-sort="model">Model <span aria-hidden="true">↑</span></button></th>
+              <th scope="col" aria-sort="none"><button type="button" data-price-sort="source">Source</button></th>
+              <th scope="col" aria-sort="none"><button type="button" data-price-sort="input_per_mtok">Input</button></th>
+              <th scope="col" aria-sort="none"><button type="button" data-price-sort="cached_read_per_mtok">Cache read</button></th>
+              <th scope="col" aria-sort="none"><button type="button" data-price-sort="cached_write_per_mtok">Cache write</button></th>
+              <th scope="col" aria-sort="none"><button type="button" data-price-sort="output_per_mtok">Output</button></th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="usage-prices-body">
+            <tr><td colspan="8" class="usage-na">Loading model prices…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="usage-price-pagination" aria-label="Price table pages">
+        <span id="usage-prices-count" aria-live="polite"></span>
+        <div><button type="button" id="usage-prices-prev" class="usage-price-button" disabled>Previous</button>
+          <span id="usage-prices-page"></span>
+          <button type="button" id="usage-prices-next" class="usage-price-button" disabled>Next</button></div>
+      </div>
+      <form id="price-entry-editor" class="router-model-editor" hidden>
+        <div class="router-model-fields">
+          <label>Provider
+            <input id="price-entry-provider" name="provider" type="text" autocomplete="off"
+                   placeholder="e.g. anthropic, openai, local-vllm, custom" required>
+          </label>
+          <label>Model ID
+            <input id="price-entry-id" name="id" type="text" autocomplete="off"
+                   placeholder="e.g. gpt-5.6-sol" required>
+          </label>
+          <label>Alias (optional)
+            <input id="price-entry-alias" name="alias" type="text" autocomplete="off"
+                   placeholder="e.g. sol">
+          </label>
+        </div>
+        <div class="router-model-fields" style="margin-top: 10px;">
+          <label>Input ($/1M)
+            <input id="price-entry-input" name="input_per_mtok" type="number" min="0" step="any"
+                   placeholder="2.0" required>
+          </label>
+          <label>Cache read ($/1M)
+            <input id="price-entry-cache-read" name="cached_read_per_mtok" type="number" min="0" step="any"
+                   placeholder="optional">
+          </label>
+          <label>Cache write ($/1M)
+            <input id="price-entry-cache-write" name="cached_write_per_mtok" type="number" min="0" step="any"
+                   placeholder="optional">
+          </label>
+          <label>Output ($/1M)
+            <input id="price-entry-output" name="output_per_mtok" type="number" min="0" step="any"
+                   placeholder="10.0" required>
+          </label>
+        </div>
+        <p id="price-entry-error" class="router-model-error" hidden></p>
+        <div class="router-model-form-actions">
+          <button type="submit" id="price-entry-save" class="usage-prices-save">Save price</button>
+          <button type="button" id="price-entry-cancel" class="router-text-btn">Cancel</button>
+        </div>
+      </form>
+    </section>
+    </div>
+
+    <div id="usage-pane-logs" class="usage-pane" role="tabpanel" aria-labelledby="usage-tab-logs" hidden>
+    <section class="usage-panel usage-generations-panel" aria-labelledby="usage-generations-title">
+      <header class="usage-panel-header">
+        <h2 id="usage-generations-title">Generation logs</h2>
+        <span class="usage-generations-meta" id="usage-generations-meta">last 20</span>
+      </header>
+      <div class="usage-log-filters" role="group" aria-label="Log filters">
+        <label>Provider
+          <select id="usage-log-filter-provider" data-log-filter="provider">
+            <option value="">All</option>
+          </select>
+        </label>
+        <label>Agent
+          <select id="usage-log-filter-agent" data-log-filter="agent">
+            <option value="">All</option>
+          </select>
+        </label>
+        <label>Model
+          <select id="usage-log-filter-model" data-log-filter="model">
+            <option value="">All</option>
+          </select>
+        </label>
+      </div>
+      <div class="usage-generations-scroll">
+        <table class="usage-generations-table" aria-label="Per-provider generation log">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Provider</th>
+              <th>Agent</th>
+              <th>Model</th>
+              <th>In</th>
+              <th>Cached</th>
+              <th>Out</th>
+              <th>TTFT</th>
+              <th>Gen</th>
+              <th>Wait</th>
+              <th>Cost</th>
+            </tr>
+          </thead>
+          <tbody id="usage-generations-body">
+            <tr><td colspan="11" class="usage-na">No generations recorded</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    </div>
+
+    <div id="usage-pane-subscriptions" class="usage-pane" role="tabpanel"
+         aria-labelledby="usage-tab-subscriptions" hidden>
+      <section class="usage-panel usage-subscriptions-panel" aria-labelledby="usage-subscriptions-title">
+        <header class="usage-panel-header">
+          <h2 id="usage-subscriptions-title">Subscriptions</h2>
+          <div class="usage-subscriptions-actions">
+            <span class="usage-generations-meta" id="usage-subscriptions-meta">Discovered on this machine</span>
+            <button type="button" id="usage-subscriptions-update" class="usage-prices-save">Update</button>
+          </div>
+        </header>
+        <details class="usage-legend-details" id="usage-subscriptions-legend">
+          <summary class="usage-legend-toggle">
+            <svg class="usage-legend-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            <span>Legend</span>
+          </summary>
+          <div class="usage-legend-body">
+            <p class="usage-prices-note">
+              Live remaining quota for subscription providers discovered
+              on this machine. Subscriptions are sorted by pace, lowest first.
+              Each card fills in as that vendor answers. Select a card to see its limits.
+            </p>
+            <p class="usage-pace-legend" id="usage-subscriptions-pace-scale" hidden></p>
+          </div>
+        </details>
+        <div id="usage-subscriptions-groups" aria-live="polite">
+          <section id="usage-group-subscriptions" class="usage-subscriptions-group" hidden>
+            <h3>Subscriptions</h3>
+            <div id="usage-subscriptions-grid" class="usage-subscriptions-grid"></div>
+          </section>
+          <p class="usage-na" id="usage-subscriptions-empty">No subscription snapshot yet</p>
+        </div>
+        <section class="usage-pace-chart-section" id="usage-sub-chart-section" aria-label="Subscription pace history">
+          <header class="usage-pace-chart-header">
+            <h3>Pace history</h3>
+            <div class="usage-view-toggle usage-history-period" role="group" aria-label="Pace history period" data-history-chart="sub">
+              <button type="button" data-history-period="6h">6h</button>
+              <button type="button" class="active" data-history-period="24h" aria-pressed="true">24h</button>
+              <button type="button" data-history-period="7d">7d</button>
+              <button type="button" data-history-period="30d">30d</button>
+            </div>
+          </header>
+          <div id="usage-sub-chart" class="usage-sub-chart" role="img" aria-label="Subscription pace chart"></div>
+          <div id="usage-sub-chart-legend" class="usage-chart-legend"></div>
+        </section>
+      </section>
+    </div>
+
+    <div id="usage-pane-api" class="usage-pane" role="tabpanel"
+         aria-labelledby="usage-tab-api" hidden>
+      <section class="usage-panel usage-subscriptions-panel" aria-labelledby="usage-api-title">
+        <header class="usage-panel-header">
+          <h2 id="usage-api-title">API</h2>
+          <div class="usage-subscriptions-actions">
+            <span class="usage-generations-meta" id="usage-api-meta">Prepaid balances</span>
+            <button type="button" id="usage-api-update" class="usage-prices-save">Update</button>
+          </div>
+        </header>
+        <details class="usage-legend-details" id="usage-api-legend">
+          <summary class="usage-legend-toggle">
+            <svg class="usage-legend-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            <span>Legend</span>
+          </summary>
+          <div class="usage-legend-body">
+            <p class="usage-prices-note">
+              Live remaining balances and prepaid API credits for providers discovered
+              on this machine. Card fill shows the share of credit left when a limit
+              is available. Select a card to see its limits.
+            </p>
+          </div>
+        </details>
+        <div id="usage-api-groups" aria-live="polite">
+          <section id="usage-group-api" class="usage-subscriptions-group" hidden>
+            <h3>API</h3>
+            <div id="usage-api-grid" class="usage-subscriptions-grid"></div>
+          </section>
+          <p class="usage-na" id="usage-api-empty">No API snapshot yet</p>
+        </div>
+        <section class="usage-pace-chart-section" id="usage-api-chart-section" aria-label="API balance history">
+          <header class="usage-pace-chart-header">
+            <h3>Balance history</h3>
+            <div class="usage-view-toggle usage-history-period" role="group" aria-label="Balance history period" data-history-chart="api">
+              <button type="button" data-history-period="6h">6h</button>
+              <button type="button" class="active" data-history-period="24h" aria-pressed="true">24h</button>
+              <button type="button" data-history-period="7d">7d</button>
+              <button type="button" data-history-period="30d">30d</button>
+            </div>
+          </header>
+          <div id="usage-api-chart" class="usage-sub-chart" role="img" aria-label="API balance chart"></div>
+          <div id="usage-api-chart-legend" class="usage-chart-legend"></div>
+        </section>
+      </section>
+    </div>
+
+    <p id="usage-status" class="usage-status" role="status" hidden></p>
+  </main>
+</div>
+
+<script src="{{ base }}/static/nav.js?v={{ asset_rev('nav.js') }}"></script>
+<script src="{{ base }}/static/usage_pace.js?v={{ asset_rev('usage_pace.js') }}"></script>
+<script src="{{ base }}/static/usage_prices.js?v={{ asset_rev('usage_prices.js') }}"></script>
+<script src="{{ base }}/static/usage.js?v={{ asset_rev('usage.js') }}"></script>
+</body>
+</html>

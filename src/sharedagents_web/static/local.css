@@ -1,0 +1,793 @@
+/* Router + vLLM panes on the Models page. Router chrome is reused from usage.css. */
+
+#models-app.is-router,
+#models-app.is-vllm {
+  max-width: 1440px;
+}
+
+#models-pane-router,
+#models-pane-vllm {
+  width: min(1400px, 100%);
+  margin: 0 auto;
+  padding-bottom: 20px;
+}
+
+#models-app.is-router .models-main,
+#models-app.is-vllm .models-main {
+  width: min(1400px, calc(100% - 24px));
+}
+
+#models-app .router-kpis {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  max-width: 860px;
+  margin: 16px auto 0;
+}
+
+.local-replicas-panel,
+.local-other-panel,
+.local-mux-panel,
+.local-logs-panel {
+  margin-top: 16px;
+  padding: 16px 18px 18px;
+  border: 1px solid var(--usage-border, var(--border-color));
+  border-radius: 16px;
+  background: var(--usage-panel, var(--bg-secondary));
+}
+
+.local-replica-table th:nth-child(n + 4),
+.local-replica-table td:nth-child(n + 4) {
+  font-variant-numeric: tabular-nums;
+}
+
+.local-mux-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.local-mux-card {
+  border: 1px solid var(--usage-border, var(--border-color));
+  border-radius: 12px;
+  background: var(--usage-bg, var(--bg-primary));
+  padding: 12px 14px;
+  min-width: 0;
+}
+
+.local-mux-card strong {
+  display: block;
+  color: #ececf0;
+  font-size: 13px;
+  font-family: var(--font-mono, monospace);
+  word-break: break-all;
+}
+
+.local-mux-card span {
+  display: block;
+  margin-top: 6px;
+  color: #8ee0b0;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono, monospace);
+}
+
+.local-logs {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.local-log {
+  border: 1px solid var(--usage-border, var(--border-color));
+  border-radius: 12px;
+  background: #121214;
+  overflow: hidden;
+}
+
+.local-log header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--usage-border, var(--border-color));
+  color: #b7b8bf;
+  font-size: 12px;
+}
+
+.local-log header strong { color: #ececf0; }
+.local-log pre {
+  margin: 0;
+  padding: 10px 12px;
+  max-height: 280px;
+  overflow: auto;
+  color: #c9c9cf;
+  font: 11px/1.45 var(--font-mono, ui-monospace, monospace);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.local-log.is-empty pre { color: #7d7e86; }
+
+#models-pane-vllm .usage-chart-panel { margin-top: 8px; }
+#models-pane-vllm .usage-chart { min-height: 160px; }
+
+#models-app .vllm-kpi-now strong {
+  font-size: 28px;
+  color: #8ee0b0;
+}
+
+.router-node-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.router-node-now {
+  margin-left: auto;
+  color: #8ee0b0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono, monospace);
+  white-space: nowrap;
+}
+
+.router-node-chevron {
+  width: 8px;
+  height: 8px;
+  margin-top: 8px;
+  border-right: 2px solid #8d8e96;
+  border-bottom: 2px solid #8d8e96;
+  transform: rotate(-45deg);
+  flex: 0 0 auto;
+}
+
+.router-node.is-open .router-node-chevron {
+  margin-top: 4px;
+  transform: rotate(45deg);
+}
+
+.router-node-body {
+  margin-top: 8px;
+}
+
+.router-models-group-title {
+  margin: 16px 0 8px;
+  color: #b7b8bf;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.router-models-group-title:first-child {
+  margin-top: 0;
+}
+
+.router-other {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--usage-border, var(--border-color));
+}
+
+.router-other h4 {
+  margin: 0 0 8px;
+  color: #b7b8bf;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.router-other-row,
+.router-model-row.is-other .router-model-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.router-other-row {
+  padding: 8px 0;
+}
+
+.router-other-calls {
+  margin-left: auto;
+  color: #c9c9cf;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono, monospace);
+}
+
+.local-other-table th:last-child,
+.local-other-table td:last-child {
+  font-variant-numeric: tabular-nums;
+}
+
+.local-turns-panel {
+  margin-top: 16px;
+  padding: 16px 18px 18px;
+  border: 1px solid var(--usage-border, var(--border-color));
+  border-radius: 16px;
+  background: var(--usage-panel, var(--bg-secondary));
+}
+
+.local-turns {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.local-turn {
+  border: 1px solid var(--usage-border, var(--border-color));
+  border-radius: 12px;
+  background: #121214;
+  padding: 8px 12px 10px;
+}
+
+.local-turn header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: #b7b8bf;
+  font-size: 12px;
+}
+
+.local-turn header strong {
+  color: #ececf0;
+  font-family: var(--font-mono, monospace);
+}
+
+.local-turn p {
+  margin: 6px 0 0;
+  color: #8ee0b0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono, monospace);
+}
+
+.local-turn.is-engine {
+  background: #16161a;
+}
+
+.local-turn .router-stats {
+  margin-top: 8px;
+}
+
+/* ---- Router routing plan ------------------------------------------------
+   One card per LLM pool: numbered concurrency slots in fill order, each
+   replica's slot range and live occupancy, then the numbered fallback
+   chain and the terminal 503. Kept compact so several pools share a row. */
+
+#models-app.is-router .models-subtabs,
+#models-app.is-vllm .models-subtabs {
+  margin: 6px auto 10px;
+}
+
+#models-pane-router .router-hero,
+#models-pane-vllm .router-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  padding: 2px 4px 0;
+  text-align: left;
+}
+
+.router-strip-id {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.router-strip-id .usage-hero-label {
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+#models-pane-router .router-hero h1,
+#models-pane-vllm .router-hero h1 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.router-strip .usage-hero-subtitle {
+  flex: 1 1 320px;
+  max-width: 560px;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.router-strip .router-kpis {
+  margin: 0 0 0 auto;
+  max-width: none;
+  width: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.router-strip .usage-kpi {
+  padding: 1px 10px;
+}
+
+.router-strip .usage-kpi strong {
+  font-size: 16px;
+}
+
+.router-strip .usage-kpi span {
+  margin-top: 0;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+#models-pane-router .router-models-panel {
+  margin-top: 8px;
+  padding: 10px 12px 12px;
+}
+
+#models-pane-router .router-models-panel > .usage-prices-note {
+  margin: 4px 0 0;
+}
+
+#models-pane-router .router-fleet {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+#models-pane-router .router-node {
+  padding: 12px 13px 11px;
+}
+
+#models-pane-router .router-node-copy h3 {
+  font-size: 15px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+#models-pane-router .router-node-now {
+  padding-left: 6px;
+  font-size: 11px;
+}
+
+#models-pane-router .router-node-state {
+  padding-left: 2px;
+}
+
+.router-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+  align-items: start;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.router-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 7px 9px 8px;
+  border: 1px solid var(--usage-border, var(--border-color));
+  border-radius: 12px;
+  background: var(--usage-bg, var(--bg-primary));
+}
+
+.router-plan-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.router-plan-id {
+  color: #ececf0;
+  font: 600 13px/1.2 var(--font-mono, monospace);
+  overflow-wrap: anywhere;
+}
+
+.router-plan-stat {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #242428;
+  color: #b7b8bf;
+  font: 600 10px/1.5 var(--font-mono, monospace);
+  white-space: nowrap;
+}
+
+.router-plan-stat.is-live {
+  color: #8ee0b0;
+}
+
+.router-plan-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.router-plan-actions .router-text-btn {
+  padding: 3px 7px;
+  font-size: 11px;
+}
+
+.router-plan-warn {
+  margin: 0;
+  color: #e6c36a;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.router-plan-empty {
+  margin: 2px 0;
+  color: #8d8e96;
+  font-size: 11px;
+}
+
+.router-plan-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.router-step {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 5px;
+  border-radius: 7px;
+  background: #1c1c1f;
+}
+
+.router-step.is-down {
+  opacity: 0.6;
+}
+
+.router-step-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 18px;
+  border-radius: 5px;
+  background: #2d2d33;
+  color: #9aaad0;
+  font: 700 9px/1 var(--font-mono, monospace);
+}
+
+.router-step.is-down .router-step-rank {
+  color: #ef9a90;
+}
+
+.router-step-main {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.router-step-name {
+  color: #ececf0;
+  font: 600 11.5px/1.3 var(--font-mono, monospace);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.router-step-live {
+  color: #8ee0b0;
+  font: 600 10px/1.3 var(--font-mono, monospace);
+  white-space: nowrap;
+}
+
+.router-step.is-down .router-step-live {
+  color: #ef9a90;
+}
+
+.router-step-meta {
+  color: #7d7e86;
+  font: 10px/1.3 var(--font-mono, monospace);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.router-step-slots {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.router-slot {
+  min-width: 18px;
+  padding: 1px 3px;
+  border-radius: 4px;
+  background: #2b2b31;
+  color: #d8d8dc;
+  font: 600 9.5px/1.5 var(--font-mono, monospace);
+  text-align: center;
+}
+
+.router-slot.is-range {
+  padding: 1px 5px;
+  color: #9aaad0;
+}
+
+.router-plan-overflow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 5px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--usage-border, var(--border-color));
+}
+
+.router-flow-label {
+  color: #7d7e86;
+  font: 600 9.5px/1.4 var(--font-mono, monospace);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.router-flow-arrow {
+  color: #6d6e76;
+  font-size: 11px;
+}
+
+.router-hop {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 2px 7px 2px 3px;
+  border-radius: 999px;
+  background: #242428;
+}
+
+.router-hop.is-up { box-shadow: inset 0 0 0 1px rgba(74, 214, 138, 0.35); }
+.router-hop.is-down { box-shadow: inset 0 0 0 1px rgba(239, 154, 144, 0.35); }
+.router-hop.is-external { background: #2a2438; }
+.router-hop.is-reject { background: rgba(239, 154, 144, 0.1); }
+
+.router-hop-rank {
+  padding: 2px 4px;
+  border-radius: 999px;
+  background: #33333a;
+  color: #9aaad0;
+  font: 700 8.5px/1 var(--font-mono, monospace);
+  white-space: nowrap;
+}
+
+.router-hop.is-external .router-hop-rank { color: #d5c6f5; }
+.router-hop.is-reject .router-hop-rank { color: #ef9a90; }
+
+.router-hop-main {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+}
+
+.router-hop-main strong {
+  color: #e4e4e8;
+  font: 600 10px/1.4 var(--font-mono, monospace);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.router-hop-main small {
+  color: #8d8e96;
+  font: 9.5px/1.4 var(--font-mono, monospace);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.router-hop.is-reject .router-hop-main strong,
+.router-hop.is-reject .router-hop-main small {
+  color: #ef9a90;
+}
+
+/* ---- Local benchmarks (vLLM tab) --------------------------------------- */
+
+.local-bench-panel {
+  margin-top: 8px;
+  padding: 10px 12px 12px;
+}
+
+.local-bench-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+  margin-top: 8px;
+}
+
+.local-bench-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.local-bench-field label,
+.local-bench-target-head > span {
+  color: #96979e;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.local-bench-field input {
+  width: 112px;
+  padding: 6px 8px;
+  border: 1px solid var(--usage-border, var(--border-color));
+  border-radius: 8px;
+  background: #202023;
+  color: #ececef;
+  font: 12px/1.3 var(--font-mono, monospace);
+}
+
+.local-bench-hint {
+  color: #7d7e86;
+  font-size: 10px;
+}
+
+.local-bench-target-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-basis: 100%;
+}
+
+.local-bench-target-head .router-text-btn {
+  padding: 2px 8px;
+  font-size: 10px;
+}
+
+.local-bench-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex-basis: 100%;
+}
+
+.local-bench-target {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 9px 4px 7px;
+  border: 1px solid var(--usage-border, var(--border-color));
+  border-radius: 999px;
+  background: #1c1c1f;
+  cursor: pointer;
+}
+
+.local-bench-target.is-down {
+  opacity: 0.55;
+}
+
+.local-bench-target input {
+  margin: 0;
+  accent-color: #8ee0b0;
+}
+
+.local-bench-target-copy strong {
+  display: block;
+  color: #ececf0;
+  font: 600 11px/1.2 var(--font-mono, monospace);
+}
+
+.local-bench-target-copy small {
+  display: block;
+  color: #8d8e96;
+  font: 9.5px/1.3 var(--font-mono, monospace);
+}
+
+.local-bench-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #666;
+  flex: 0 0 auto;
+}
+
+.local-bench-dot.is-up { background: #4ad68a; }
+.local-bench-dot.is-down { background: #ef9a90; }
+
+.local-bench-empty {
+  margin: 0;
+  color: #8d8e96;
+  font-size: 12px;
+}
+
+.local-bench-controls > .usage-prices-save {
+  margin-left: auto;
+}
+
+.local-bench-status {
+  margin: 8px 0 0;
+  color: #8ee0b0;
+  font-size: 12px;
+}
+
+.local-bench-status.is-error { color: #ef9a90; }
+
+.local-bench-table {
+  margin-top: 6px;
+  font-size: 11.5px;
+}
+
+.local-bench-table th,
+.local-bench-table td {
+  padding: 3px 7px;
+}
+
+.local-bench-table th {
+  font-size: 9.5px;
+}
+
+.local-bench-table th:nth-child(n + 3),
+.local-bench-table td:nth-child(n + 3) {
+  font-variant-numeric: tabular-nums;
+}
+
+.local-bench-table th:nth-child(4),
+.local-bench-table th:nth-child(5),
+.local-bench-table td.local-bench-metric {
+  color: #8ee0b0;
+  font-weight: 600;
+}
+
+.local-bench-phase { color: #b7b8bf; white-space: nowrap; }
+.local-bench-row.is-queued td { color: #7d7e86; }
+.local-bench-row.is-missing td { color: #e6c36a; }
+.local-bench-row.is-error td { color: #ef9a90; }
+.local-bench-state { text-transform: uppercase; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; }
+.local-bench-row.is-done .local-bench-state { color: #8ee0b0; }
+.local-bench-row.is-error .local-bench-state { color: #ef9a90; }
+.local-bench-row.is-queued .local-bench-state,
+.local-bench-row.is-missing .local-bench-state { color: #e6c36a; }
+
+.local-bench-note {
+  margin: 8px 0 0;
+  color: #7d7e86;
+  font-size: 11px;
+}
+
+@media (max-width: 1120px) {
+  .router-plan-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 720px) {
+  #models-app .router-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .router-strip .router-kpis { width: 100%; margin-left: 0; }
+  .local-replica-table { font-size: 11px; }
+  .router-node-now { font-size: 12px; }
+  .router-plan-grid { grid-template-columns: minmax(0, 1fr); }
+  .router-step { grid-template-columns: 26px minmax(0, 1fr); }
+  .router-step-slots { grid-column: 2; justify-content: flex-start; }
+}

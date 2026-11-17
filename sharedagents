@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+# sharedagents — launcher with auto-bootstrap.
+#
+# Detects a venv at the repo root, creates one if missing, installs
+# project dependencies, and execs the TUI inside it. Designed to be
+# the one-shot entry point for fresh clones — no manual venv juggling.
+#
+# Resolution order for the venv:
+#   1. $SHAREDAGENTS_VENV          (explicit override)
+#   2. <repo>/.venv           (preferred default)
+#   3. <repo>/venv            (legacy, used if already present)
+#   4. <repo>/.venv           (created on first run)
+#
+# Install source (first match wins):
+#   1. pyproject.toml         → pip install -e .
+#   2. src/requirements.txt   → pip install -r ...
+#
+# A sha-keyed sentinel under the venv (.sharedagents_installed) skips the
+# install step on subsequent runs and re-triggers it when the inputs
+# change.
+#
+# Env knobs:
+#   SHAREDAGENTS_NO_BOOTSTRAP=1   skip venv detection / install entirely
+#   SHAREDAGENTS_REINSTALL=1      force the install step on this run
+#   SHAREDAGENTS_VENV=<path>      use this venv path (created if missing)
+#   SHAREDAGENTS_PYTHON=<bin>     base interpreter for venv creation (default: python3)
+#
+# Workspace knobs (consumed by the runtime, passed through unchanged):
+#   SHAREDAGENTS_HOME=<path>      workspace root (config + agents + errors live
+#                            under here; default ~/.sharedagents). Use a sandbox
+#                            path like ~/.sharedagents-test for test runs.
+#   SHAREDAGENTS_AGENTS_HOME=<p>  exact agents directory (overrides SHAREDAGENTS_HOME);
+#                            root becomes its parent. Used by the pytest
+#                            suite to point at tmp_path/agents.
+
+set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+log() { printf '[sharedagents] %s\n' "$*" >&2; }
+die() { log "error: $*"; exit 1; }
+
+if [[ -n "${SHAREDAGENTS_VENV:-}" ]]; then
+    VENV="$SHAREDAGENTS_VENV"
+elif [[ -d "$HERE/.venv" ]]; then
+    VENV="$HERE/.venv"
+elif [[ -d "$HERE/venv" ]]; then
+    VENV="$HERE/venv"
+else
+    VENV="$HERE/.venv"
+fi
+
+PY_BIN="$VENV/bin/python"
+BASE_PY="${SHAREDAGENTS_PYTHON:-python3}"
+
+fingerprint_inputs() {
+    local out=""
+    local f
+    for f in "$HERE/pyproject.toml" "$HERE/src/requirements.txt"; do
+        if [[ -f "$f" ]]; then
+            out+="$(sha1sum "$f" | awk '{print $1}')  ${f#$HERE/}"$'\n'
+        fi
+    done
+    printf '%s' "$out"
+}
+
+bootstrap() {
+    if [[ ! -x "$PY_BIN" ]]; then
+        command -v "$BASE_PY" >/dev/null || die "$BASE_PY not found on PATH"
+        log "creating venv at ${VENV/#$HOME/~}"
+        "$BASE_PY" -m venv "$VENV" \
+            || die "failed to create venv (try: sudo apt install python3-venv)"
+        "$PY_BIN" -m pip install --upgrade --quiet pip wheel \
+            || die "failed to upgrade pip/wheel"
+    fi
+
+    local sentinel="$VENV/.sharedagents_installed"
+    local current_fp
+    current_fp="$(fingerprint_inputs)"
+
+    if [[ -z "${SHAREDAGENTS_REINSTALL:-}" && -f "$sentinel" \
+          && "$(cat "$sentinel" 2>/dev/null || true)" == "$current_fp" ]]; then
+        return 0
+    fi
+
+    if [[ -f "$HERE/pyproject.toml" ]]; then
+        log "installing project (editable) into venv"
+        "$PY_BIN" -m pip install --quiet -e "$HERE" \
+            || die "pip install -e . failed"
+    elif [[ -f "$HERE/src/requirements.txt" ]]; then
+        log "installing src/requirements.txt into venv"
+        "$PY_BIN" -m pip install --quiet -r "$HERE/src/requirements.txt" \
+            || die "pip install -r src/requirements.txt failed"
+    else
+        log "no pyproject.toml or src/requirements.txt found — skipping install"
+    fi
+
+    printf '%s' "$current_fp" > "$sentinel"
+}
+
+if [[ -z "${SHAREDAGENTS_NO_BOOTSTRAP:-}" ]]; then
+    bootstrap
+fi
+
+[[ -x "$PY_BIN" ]] || die "venv python missing at $PY_BIN (unset SHAREDAGENTS_NO_BOOTSTRAP to auto-create)"
+
+export PYTHONPATH="$HERE/src${PYTHONPATH:+:$PYTHONPATH}"
+exec "$PY_BIN" -m sharedagents_tui "$@"

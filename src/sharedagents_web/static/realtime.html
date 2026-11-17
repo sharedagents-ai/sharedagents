@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__SITE_TITLE__ · realtime voice</title>
+<meta name="sharedagents-site-title" content="__SITE_TITLE__">
+<style>
+  :root { --bg:#0b0e14; --panel:#121826; --ink:#e6e9f0; --dim:#8b93a7;
+          --accent:#5eead4; --user:#7dd3fc; --bot:#fbbf24; --err:#f87171; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:15px/1.5 ui-monospace, "JetBrains Mono", Menlo, monospace;
+         display:flex; flex-direction:column; height:100vh; }
+  header { padding:14px 20px; display:flex; flex-wrap:wrap; gap:12px 14px;
+           align-items:center; border-bottom:1px solid #1f2737; }
+  header h1 { font-size:15px; margin:0; font-weight:600; letter-spacing:.06em; }
+  header h1 span { color:var(--accent); }
+  /* Connect + mode stacked in a narrow column so the controls stay compact and
+     the row can wrap cleanly on a phone. */
+  .btns { display:flex; flex-direction:column; gap:8px; }
+  .btns button { width:100%; }
+  #status { font-size:12px; color:var(--dim); }
+  #status.live { color:var(--accent); }
+  #vu { width:120px; height:8px; background:#1f2737; border-radius:4px; overflow:hidden; }
+  #vu > div { height:100%; width:0%; background:var(--user); transition:width .06s linear; }
+  button { background:var(--panel); color:var(--ink); border:1px solid #2a3650;
+           border-radius:8px; padding:8px 18px; font:inherit; cursor:pointer;
+           white-space:nowrap; }
+  button:hover { border-color:var(--accent); }
+  button.active { background:var(--accent); color:#06281f; font-weight:700; }
+  #meeting { border-color:#b45309; }
+  #meeting.active { background:#f59e0b; border-color:#fbbf24; color:#211000; }
+  #log { flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:10px; }
+  .turn { max-width:72ch; padding:10px 14px; border-radius:10px; background:var(--panel);
+          white-space:pre-wrap; }
+  .turn.user { align-self:flex-end; border-left:3px solid var(--user); }
+  .turn.bot  { align-self:flex-start; border-left:3px solid var(--bot); }
+  .turn .who { font-size:11px; color:var(--dim); margin-bottom:2px; }
+  .turn.err  { border-left:3px solid var(--err); color:var(--err); }
+  /* live caption: dim + italic while the partial transcript is still settling */
+  .turn.partial { opacity:.6; font-style:italic; }
+  footer { padding:10px 20px; font-size:12px; color:var(--dim);
+           border-top:1px solid #1f2737; min-height:38px; }
+  .pulse { animation:pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity:.35; } }
+  /* How-to-talk-to-Jarvis hint, collapsible, shown above the transcript. */
+  #help { margin:16px 20px 0; padding:12px 16px; border:1px solid #1f2737;
+          border-radius:10px; background:var(--panel); color:var(--dim);
+          font-size:13px; line-height:1.55; }
+  #help summary { color:var(--accent); font-weight:600; cursor:pointer;
+                  list-style:none; user-select:none; }
+  #help summary::-webkit-details-marker { display:none; }
+  #help summary::before { content:"▸ "; color:var(--dim); }
+  #help[open] summary { margin-bottom:8px; }
+  #help[open] summary::before { content:"▾ "; }
+  #help b { color:var(--accent); font-weight:600; }
+  #help kbd { color:var(--ink); background:#1f2737; border-radius:4px;
+              padding:1px 6px; font:inherit; }
+  #help .ex { color:var(--user); }
+  /* Phones: title on its own line, controls wrap below, tighter padding so
+     everything fits without horizontal scrolling. */
+  @media (max-width:520px) {
+    header { padding:10px 12px; gap:10px 12px; }
+    header h1 { font-size:14px; flex:1 1 100%; }
+    #vu { flex:1 1 auto; }
+    #help { margin:12px 12px 0; }
+    #log { padding:12px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>__SITE_TITLE__ · realtime voice</h1>
+  <div class="btns">
+    <button id="btn">▶ connect</button>
+    <button id="mode" title="Audio leaves this device only after local wake detection.">🅦 local wake</button>
+    <button id="meeting" title="Start a passive, audibly announced meeting transcript.">◉ meeting</button>
+  </div>
+  <div id="vu"><div></div></div>
+  <div id="status">idle</div>
+</header>
+<details id="help">
+  <summary>How to talk to Jarvis</summary>
+  Like a radio call: start with the wake word <kbd>Hey Jarvis</kbd>, say your
+  request, then finish with <kbd>over</kbd> so Jarvis knows you're done (pause
+  mid-sentence all you want — it waits for <kbd>over</kbd>). Jarvis then
+  <b>reads your request back</b> for you to confirm before acting — reply
+  <kbd>affirm</kbd> / <kbd>correct</kbd> to go ahead, or just restate it.
+  <div class="ex">e.g. “Hey Jarvis, search the web for the latest on Iran and summarize it… over.”</div>
+</details>
+<div id="log"></div>
+<footer id="metrics"></footer>
+<!-- onnxruntime-web (UMD → global `ort`) + the client-side wake-word engine.
+     Loaded before realtime.js; if either is missing the client fails closed to
+     explicit push-to-talk. -->
+<script src="vendor/onnxruntime/ort.wasm.min.js"></script>
+<script src="wakeword.js"></script>
+<script src="realtime.js"></script>
+</body>
+</html>

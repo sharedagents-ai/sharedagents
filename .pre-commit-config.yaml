@@ -1,0 +1,23 @@
+# Local gates — `pre-commit install` once per checkout.
+# Mirrors CI: ruff lint + format, then the leak guards.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.5
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+  - repo: local
+    hooks:
+      - id: no-local-references
+        name: no deployment identity in the tree
+        entry: python -m pytest -q tests/test_no_local_references.py
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: forbidden-patterns
+        name: no private IPs / forge URLs / keys (src, docs, scripts)
+        entry: python scripts/check_forbidden_patterns.py src docs scripts
+        language: system
+        pass_filenames: false
+        always_run: true

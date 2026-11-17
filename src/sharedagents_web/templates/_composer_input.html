@@ -1,0 +1,70 @@
+{# Shared Chat composer row: attach + draft + voice. #}
+<div id="paste-preview" class="paste-preview" hidden></div>
+<div class="composer-input-row">
+<button id="attach-btn" class="mic-btn composer-attach" type="button"
+        title="Attach any file (up to 25 MB)"
+        aria-label="Attach files">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M12 5v14M5 12h14"/>
+  </svg>
+</button>
+<input id="attach-input" type="file" accept="*/*" multiple hidden>
+<div class="composer-draft">
+  <div id="voice-live-stage" class="voice-live-stage" hidden>
+    <canvas id="audio-visualizer" class="audio-visualizer" width="400" height="36"></canvas>
+    <div id="voice-live-caption" class="voice-live-caption" role="status" aria-live="polite">
+      <span class="voice-caption-text"></span><span class="voice-caption-pending" hidden>…</span>
+    </div>
+  </div>
+  <textarea
+    id="message-input"
+    placeholder="{{ composer_placeholder | default('Message or / for commands') }}"
+    aria-label="{{ composer_aria | default('Message input') }}"
+    rows="1"
+  ></textarea>
+</div>
+<div class="composer-actions" aria-label="Message actions">
+<button id="mic-btn" class="mic-btn" type="button" title="Record audio message">
+  <svg class="mic-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <rect x="9" y="2" width="6" height="12" rx="3"/>
+    <path d="M5 10a7 7 0 0 0 14 0"/>
+    <line x1="12" y1="19" x2="12" y2="22"/>
+  </svg>
+  <svg class="mic-stop-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+    <rect x="6" y="6" width="12" height="12" rx="2"/>
+  </svg>
+</button>
+{% if composer_realtime | default(true) %}
+<button id="realtime-btn" class="mic-btn realtime-btn" type="button"
+        title="Realtime voice — talk live" aria-label="Realtime voice" disabled>
+  <svg class="realtime-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <line x1="6" y1="9" x2="6" y2="15"/>
+    <line x1="10" y1="5" x2="10" y2="19"/>
+    <line x1="14" y1="8" x2="14" y2="16"/>
+    <line x1="18" y1="11" x2="18" y2="13"/>
+  </svg>
+  <svg class="realtime-stop-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+    <rect x="6" y="6" width="12" height="12" rx="2"/>
+  </svg>
+</button>
+{% endif %}
+{% if composer_send | default(true) %}
+<button id="tree-stop-btn" class="send-btn stop-btn tree-stop-btn" type="button"
+        title="Stop session tree (parent + subagents)" aria-label="Stop session tree"
+        hidden>
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+    <rect x="6" y="6" width="12" height="12" rx="2"/>
+  </svg>
+</button>
+<button id="send-btn" class="send-btn" type="button" aria-label="Send message" disabled>
+  <svg class="send-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <line x1="22" y1="2" x2="11" y2="13"/>
+    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+  </svg>
+  <svg class="stop-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+    <rect x="6" y="6" width="12" height="12" rx="2"/>
+  </svg>
+</button>
+{% endif %}
+</div>
+</div>

@@ -1,0 +1,66 @@
+site_name: SharedAgents
+site_description: Local AI agent platform with full under-the-hood visibility.
+# Placeholder until the docs domain is live.
+site_url: https://docs.sharedagents.ai/
+repo_url: https://github.com/sharedagents-ai/sharedagents
+repo_name: sharedagents-ai/sharedagents
+edit_uri: edit/main/docs/
+site_dir: build/docs
+strict: true
+copyright: SharedAgents is released under the MIT license.
+theme:
+  name: material
+  font: false
+  features:
+    - content.code.copy
+    - navigation.footer
+    - navigation.sections
+    - search.highlight
+  palette:
+    - scheme: slate
+      primary: black
+      accent: green
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+    - scheme: default
+      primary: black
+      accent: green
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+plugins:
+  - search:
+      lang: en
+hooks:
+  # Builds index.md from README.md so the two never drift.
+  - scripts/mkdocs_hooks.py
+nav:
+  - Overview: index.md
+  - Agents:
+    - Async delegation waves: delegation-waves.md
+    - Decision models: decision.md
+    - Knowledge-store research: research-workflow.md
+    - Pi RPC engine: pi-rpc.md
+  - Dev tab:
+    - Forge (Gitea or GitHub): forge.md
+  - Models:
+    - Short model names: model-catalogue-aliases.md
+  - Voice:
+    - Wake-word models: voice-models.md
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+validation:
+  nav:
+    not_found: warn
+  links:
+    not_found: warn
+    anchors: warn
+extra:
+  generator: false

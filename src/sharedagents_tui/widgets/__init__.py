@@ -1,0 +1,85 @@
+"""sharedagents TUI widgets package (extracted from app.py)."""
+
+from __future__ import annotations
+
+from sharedagents_tui.widgets.input import (
+    SLASH_COMMAND_HELP,
+    CommandHistory,
+    MessageInput,
+    _longest_common_prefix,
+    file_command_rows,
+    merge_slash_command_rows,
+)
+from sharedagents_tui.widgets.messages import (
+    AntigravityMessage,
+    AskUserQuestionMessage,
+    AssistantMessage,
+    ClaudeMessage,
+    CodexMessage,
+    CommandResultMessage,
+    ContextMessage,
+    HarnessTaskListMessage,
+    OutputSectionMessage,
+    PlanMessage,
+    RoundMetricsMessage,
+    TaskUpdateMessage,
+    ToolCallMessage,
+    ToolResultMessage,
+    UpdateMessage,
+    UserMessage,
+    UserQuestionMessage,
+)
+from sharedagents_tui.widgets.modals import (
+    AcpPermissionModal,
+    AgentMonitorModal,
+    ConfirmModal,
+    ModelPickerModal,
+    MonitorPanelModal,
+    PermissionModal,
+    QuestionsModal,
+    SessionPickerModal,
+)
+from sharedagents_tui.widgets.notices import CompactionNotice, EmptyEosNotice, RuntimeWarningNotice
+from sharedagents_tui.widgets.panels import PlanChecklistFooter, SubagentBoxMessage, SubagentListPanel
+from sharedagents_tui.widgets.scroll import TranscriptScroll
+
+__all__ = [
+    "RoundMetricsMessage",
+    "UserMessage",
+    "AssistantMessage",
+    "ClaudeMessage",
+    "CodexMessage",
+    "AntigravityMessage",
+    "ToolCallMessage",
+    "ToolResultMessage",
+    "PlanMessage",
+    "AskUserQuestionMessage",
+    "UserQuestionMessage",
+    "OutputSectionMessage",
+    "ContextMessage",
+    "CommandResultMessage",
+    "UpdateMessage",
+    "TaskUpdateMessage",
+    "HarnessTaskListMessage",
+    "PlanChecklistFooter",
+    "SubagentBoxMessage",
+    "SubagentListPanel",
+    "EmptyEosNotice",
+    "RuntimeWarningNotice",
+    "CompactionNotice",
+    "PermissionModal",
+    "AcpPermissionModal",
+    "QuestionsModal",
+    "MonitorPanelModal",
+    "SessionPickerModal",
+    "AgentMonitorModal",
+    "ModelPickerModal",
+    "ConfirmModal",
+    "CommandHistory",
+    "SLASH_COMMAND_HELP",
+    "file_command_rows",
+    "merge_slash_command_rows",
+    "_longest_common_prefix",
+    "MessageInput",
+    "TranscriptScroll",
+]

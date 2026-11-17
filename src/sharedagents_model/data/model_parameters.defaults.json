@@ -1,0 +1,417 @@
+{
+  "version": 1,
+  "models": [
+    {
+      "provider": "vllm",
+      "model": "qwen3.8",
+      "aliases": [
+        "qwen3.8-27b",
+        "qwen3.8-flash-next",
+        "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+        "Qwen/Qwen3.8-27B",
+        "Qwen/Qwen3.8-Flash-Next"
+      ],
+      "effort": {
+        "values": [
+          "low",
+          "medium",
+          "xhigh"
+        ],
+        "default": "medium",
+        "wire": "reasoning_effort"
+      },
+      "parameters": {
+        "dry_multiplier": 0.8,
+        "dry_base": 1.75,
+        "dry_allowed_length": 4,
+        "dry_sequence_breakers": [
+          "\n",
+          ".",
+          "!",
+          "?",
+          ":",
+          "—",
+          "```"
+        ],
+        "repetition_detection": {
+          "max_pattern_size": 80,
+          "min_pattern_size": 4,
+          "min_count": 5
+        }
+      },
+      "modes": {
+        "plan": {
+          "parameters": {
+            "chat_template_kwargs.enable_thinking": true
+          }
+        },
+        "ask": {
+          "parameters": {
+            "chat_template_kwargs.enable_thinking": true
+          }
+        },
+        "auto": {
+          "parameters": {
+            "chat_template_kwargs.enable_thinking": true
+          }
+        }
+      }
+    },
+    {
+      "provider": "vllm",
+      "model": "qwen3.6",
+      "aliases": [
+        "qwen3.6-27b",
+        "Qwen/Qwen3.6-27B"
+      ],
+      "effort": {
+        "values": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "default": "medium",
+        "wire": "chat_template_kwargs.thinking_budget",
+        "wire_values": {
+          "low": 2048,
+          "medium": 8192,
+          "high": 16384
+        }
+      },
+      "parameters": {
+        "dry_multiplier": 0.8,
+        "dry_base": 1.75,
+        "dry_allowed_length": 4,
+        "dry_sequence_breakers": [
+          "\n",
+          ".",
+          "!",
+          "?",
+          ":",
+          "—",
+          "```"
+        ],
+        "repetition_detection": {
+          "max_pattern_size": 80,
+          "min_pattern_size": 4,
+          "min_count": 5
+        }
+      },
+      "modes": {
+        "plan": {
+          "parameters": {
+            "chat_template_kwargs.enable_thinking": true
+          }
+        },
+        "ask": {
+          "parameters": {
+            "chat_template_kwargs.enable_thinking": true
+          }
+        },
+        "auto": {
+          "parameters": {
+            "chat_template_kwargs.enable_thinking": true
+          }
+        }
+      }
+    },
+    {
+      "provider": "vllm",
+      "model": "gemma",
+      "aliases": [
+        "gemma4",
+        "gemma4-31b",
+        "google/gemma-4-31B-it"
+      ],
+      "effort": {
+        "values": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "default": "medium",
+        "wire": "chat_template_kwargs.thinking_budget",
+        "wire_values": {
+          "low": 512,
+          "medium": 1024,
+          "high": 2048
+        }
+      },
+      "parameters": {
+        "dry_multiplier": 0.8,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_sequence_breakers": [
+          "\n",
+          ".",
+          "!",
+          "?",
+          "<",
+          ">"
+        ],
+        "repetition_detection": {
+          "max_pattern_size": 20,
+          "min_pattern_size": 3,
+          "min_count": 4
+        }
+      },
+      "modes": {
+        "plan": {
+          "parameters": {
+            "chat_template_kwargs.enable_thinking": true
+          }
+        },
+        "ask": {
+          "parameters": {
+            "chat_template_kwargs.enable_thinking": true
+          }
+        },
+        "auto": {
+          "parameters": {
+            "chat_template_kwargs.enable_thinking": true
+          }
+        }
+      }
+    },
+    {
+      "provider": "sglang",
+      "model": "qwen3.8",
+      "aliases": [
+        "qwen3.8-27b",
+        "qwen3.8-flash-next",
+        "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+        "Qwen/Qwen3.8-27B",
+        "Qwen/Qwen3.8-Flash-Next"
+      ],
+      "effort": {
+        "values": [
+          "low",
+          "medium",
+          "xhigh"
+        ],
+        "default": "medium",
+        "wire": "reasoning_effort"
+      },
+      "parameters": {
+        "dry_multiplier": 0.8,
+        "dry_base": 1.75,
+        "dry_allowed_length": 4,
+        "dry_sequence_breakers": [
+          "\n",
+          ".",
+          "!",
+          "?",
+          ":",
+          "—",
+          "```"
+        ],
+        "repetition_detection": {
+          "max_pattern_size": 80,
+          "min_pattern_size": 4,
+          "min_count": 5
+        }
+      },
+      "modes": {
+        "plan": {
+          "parameters": {
+            "chat_template_kwargs.enable_thinking": true
+          }
+        },
+        "ask": {
+          "parameters": {
+            "chat_template_kwargs.enable_thinking": true
+          }
+        },
+        "auto": {
+          "parameters": {
+            "chat_template_kwargs.enable_thinking": true
+          }
+        }
+      }
+    },
+    {
+      "provider": "sglang",
+      "model": "qwen3.6",
+      "aliases": [
+        "qwen3.6-27b",
+        "Qwen/Qwen3.6-27B"
+      ],
+      "effort": {
+        "values": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "default": "medium",
+        "wire": "chat_template_kwargs.thinking_budget",
+        "wire_values": {
+          "low": 2048,
+          "medium": 8192,
+          "high": 16384
+        }
+      },
+      "parameters": {
+        "dry_multiplier": 0.8,
+        "dry_base": 1.75,
+        "dry_allowed_length": 4,
+        "dry_sequence_breakers": [
+          "\n",
+          ".",
+          "!",
+          "?",
+          ":",
+          "—",
+          "```"
+        ],
+        "repetition_detection": {
+          "max_pattern_size": 80,
+          "min_pattern_size": 4,
+          "min_count": 5
+        }
+      },
+      "modes": {
+        "plan": {
+          "parameters": {
+            "chat_template_kwargs.enable_thinking": true
+          }
+        },
+        "ask": {
+          "parameters": {
+            "chat_template_kwargs.enable_thinking": true
+          }
+        },
+        "auto": {
+          "parameters": {
+            "chat_template_kwargs.enable_thinking": true
+          }
+        }
+      }
+    },
+    {
+      "provider": "sglang",
+      "model": "gemma",
+      "aliases": [
+        "gemma4",
+        "gemma4-31b",
+        "google/gemma-4-31B-it"
+      ],
+      "effort": {
+        "values": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "default": "medium",
+        "wire": "chat_template_kwargs.thinking_budget",
+        "wire_values": {
+          "low": 512,
+          "medium": 1024,
+          "high": 2048
+        }
+      },
+      "parameters": {
+        "dry_multiplier": 0.8,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_sequence_breakers": [
+          "\n",
+          ".",
+          "!",
+          "?",
+          "<",
+          ">"
+        ],
+        "repetition_detection": {
+          "max_pattern_size": 20,
+          "min_pattern_size": 3,
+          "min_count": 4
+        }
+      },
+      "modes": {
+        "plan": {
+          "parameters": {
+            "chat_template_kwargs.enable_thinking": true
+          }
+        },
+        "ask": {
+          "parameters": {
+            "chat_template_kwargs.enable_thinking": true
+          }
+        },
+        "auto": {
+          "parameters": {
+            "chat_template_kwargs.enable_thinking": true
+          }
+        }
+      }
+    },
+    {
+      "provider": "deepseek",
+      "model": "deepseek-chat",
+      "effort": {
+        "values": [
+          "low",
+          "high"
+        ],
+        "default": "high",
+        "wire": "reasoning_effort"
+      }
+    },
+    {
+      "provider": "deepseek",
+      "model": "deepseek-reasoner",
+      "effort": {
+        "values": [
+          "low",
+          "high"
+        ],
+        "default": "high",
+        "wire": "reasoning_effort"
+      }
+    },
+    {
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "effort": {
+        "values": [
+          "low",
+          "high"
+        ],
+        "default": "high",
+        "wire": "reasoning_effort"
+      }
+    },
+    {
+      "provider": "deepseek",
+      "model": "deepseek-pro",
+      "effort": {
+        "values": [
+          "low",
+          "high"
+        ],
+        "default": "high",
+        "wire": "reasoning_effort"
+      }
+    },
+    {
+      "provider": "moonshot",
+      "model": "kimi-k3",
+      "aliases": [
+        "moonshot-ai/kimi-k3"
+      ],
+      "parameters": {
+        "temperature": 1.0
+      }
+    },
+    {
+      "provider": "openrouter",
+      "model": "kimi-k3",
+      "aliases": [
+        "moonshot-ai/kimi-k3"
+      ],
+      "parameters": {
+        "temperature": 1.0
+      }
+    }
+  ]
+}

@@ -1,0 +1,465 @@
+/* Channels tab — Telegram + WhatsApp send-allowlist CRUD with compressed table structure. */
+
+#channels-app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 840px;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  margin: 0 auto;
+  padding: 0 16px 32px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  box-sizing: border-box;
+  scrollbar-gutter: stable;
+}
+
+.channels-header {
+  flex: none;
+  flex-wrap: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--bg-primary);
+}
+.channels-title-block { min-width: 0; }
+.channels-title-block .mon-title { min-width: 0; }
+.channels-header .mon-logo { flex: none; }
+.channels-header .mon-header-right { flex: none; }
+
+.channels-total {
+  font: 600 11px/1.4 var(--font-sans);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.channels-total strong { color: var(--text-primary); font-weight: 700; }
+
+.channels-lead {
+  margin: 12px 0 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.channels-board-hint {
+  margin: 0 0 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.channels-status {
+  min-height: 1.2em;
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--accent);
+}
+.channels-status.is-error { color: #d66; }
+
+.channels-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.channel-card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+  padding: 14px 16px 16px;
+  min-width: 0;
+}
+
+.channel-card h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.channel-notes {
+  margin: 0 0 14px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.channel-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+}
+.channel-qr-btn {
+  padding: 7px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font: 500 12px/1.2 var(--font-sans);
+  cursor: pointer;
+}
+.channel-qr-btn:hover { background: var(--bg-hover); }
+.channel-qr-btn:disabled { opacity: 0.65; cursor: wait; }
+.channel-qr-detail,
+.channel-qr-status {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.channel-qr-status { margin: 0 0 14px; }
+.channel-qr-img {
+  width: 220px;
+  height: 220px;
+  max-width: 100%;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 6px;
+}
+
+.channel-ac { position: relative; min-width: 0; }
+.channel-ac-list {
+  position: absolute;
+  z-index: 8;
+  left: 0;
+  right: 0;
+  top: calc(100% + 2px);
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+}
+.channel-ac-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.channel-ac-item:hover { background: var(--bg-hover); }
+.channel-ac-name { font-weight: 500; }
+.channel-ac-id { color: var(--text-muted); font-family: var(--font-mono); font-size: 11px; }
+.channel-linked {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.channel-count {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.channel-section + .channel-section { margin-top: 16px; }
+.channel-section h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* Table-like compressed structure */
+.channel-table {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+.channel-table-head {
+  display: grid;
+  grid-template-columns: minmax(130px, 1.8fr) minmax(75px, 0.9fr) minmax(90px, 1.1fr) minmax(120px, 1.4fr) 30px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.channel-entries {
+  display: flex;
+  flex-direction: column;
+}
+
+.channel-entry {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.1s ease;
+}
+
+.channel-entry-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 1.8fr) minmax(75px, 0.9fr) minmax(90px, 1.1fr) minmax(120px, 1.4fr) 30px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+}
+.channel-entry-row:hover {
+  background: var(--bg-hover);
+}
+.channel-entry.is-expanded .channel-entry-row {
+  background: var(--bg-hover);
+}
+
+.channel-cell {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.channel-who {
+  min-width: 0;
+  overflow: hidden;
+}
+.channel-name {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.channel-id {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.channel-pill {
+  display: inline-block;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pill-access { color: var(--accent); }
+.pill-route { font-family: var(--font-mono); font-size: 10.5px; }
+
+.cell-expand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.channel-chevron {
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: transform 0.18s ease;
+}
+.channel-entry.is-expanded .channel-chevron {
+  transform: rotate(180deg);
+}
+
+.channel-entry-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 14px;
+  background: var(--bg-secondary);
+  border-top: 1px dashed var(--border-color);
+}
+.channel-entry-fields[hidden] {
+  display: none !important;
+}
+
+.channel-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.channel-field-label,
+.channel-mention-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.channel-field select,
+.channel-field input,
+.channel-add input,
+.channel-add select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 7px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.channel-amp-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 7px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+.channel-amp-trigger .channel-amp-agent { font-weight: 600; }
+.channel-amp-trigger .seg-model {
+  opacity: .65;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.channel-route { min-width: 0; }
+
+.channel-mention-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+.channel-mention-wrap[hidden] { display: none; }
+
+.channel-empty {
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 12px;
+  text-align: center;
+  margin: 0;
+}
+
+/* Last row: + to add new channel */
+.channel-add-row {
+  min-width: 0;
+  background: var(--bg-primary);
+}
+
+.channel-add-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: 600 12.5px/1 var(--font-sans);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.channel-add-trigger:hover {
+  background: var(--bg-hover);
+}
+.channel-plus-symbol {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.channel-add {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 14px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+}
+.channel-add[hidden] {
+  display: none !important;
+}
+
+.channel-add-actions,
+.channel-row-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.channel-add-actions button,
+.channel-row-actions button {
+  padding: 7px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font: 500 12px/1.2 var(--font-sans);
+  cursor: pointer;
+}
+.channel-add-actions button:hover,
+.channel-row-actions button:hover {
+  background: var(--bg-hover);
+}
+.channel-btn-primary {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border-color: var(--accent) !important;
+}
+.channel-btn-primary:hover {
+  filter: brightness(1.1);
+}
+
+@media (min-width: 640px) {
+  .channel-entry-fields,
+  .channel-add {
+    grid-template-columns: 1fr 1fr;
+  }
+  .channel-add-actions,
+  .channel-row-actions {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 720px) {
+  #channels-app { padding: 0 12px 24px; }
+  .channels-header { gap: 8px; }
+  .channels-total { display: none; }
+  .channel-table-head {
+    grid-template-columns: minmax(110px, 1.5fr) minmax(65px, 0.8fr) 24px;
+  }
+  .channel-th.th-reply,
+  .channel-th.th-route,
+  .channel-cell.cell-reply,
+  .channel-cell.cell-route {
+    display: none;
+  }
+  .channel-entry-row {
+    grid-template-columns: minmax(110px, 1.5fr) minmax(65px, 0.8fr) 24px;
+  }
+}

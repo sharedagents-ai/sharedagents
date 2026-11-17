@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>{{ site_title }} · models</title>
+<meta name="sharedagents-base" content="{{ base }}">
+<link rel="stylesheet" href="{{ base }}/static/style.css?v={{ asset_rev('style.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/menu.css?v={{ asset_rev('menu.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/agents.css?v={{ asset_rev('agents.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/usage.css?v={{ asset_rev('usage.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/models.css?v={{ asset_rev('models.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/local.css?v={{ asset_rev('local.css') }}">
+{% include "_ui_zoom.html" %}
+</head>
+<body class="monitor-body models-body">
+{% set active = 'models' %}
+{% include "_menu.html" %}
+{% from "_menu.html" import menu_button %}
+
+<div id="models-app" class="is-loading">
+  <header class="mon-header models-header">
+    {{ menu_button() }}
+    <a class="mon-logo" href="{{ base }}/" title="Back to chat">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+        <path d="M2 17l10 5 10-5"/>
+        <path d="M2 12l10 5 10-5"/>
+      </svg>
+      <span>{{ site_title }}</span>
+    </a>
+    <div class="mon-title">
+      <h1>Models</h1>
+      <span id="models-conn" class="mon-conn mon-conn-live" title="Models API status"></span>
+    </div>
+    <div id="models-benchmark-actions" class="mon-header-right">
+      <span id="models-updated" class="mon-updated" aria-live="polite"></span>
+      <label class="mon-toggle" for="models-enabled-only">
+        <input type="checkbox" id="models-enabled-only">
+        <span>Only enabled</span>
+      </label>
+      <label class="mon-toggle" for="models-exact-only">
+        <input type="checkbox" id="models-exact-only">
+        <span>Exact matches only</span>
+      </label>
+      <label class="mon-toggle" for="models-show-all">
+        <input type="checkbox" id="models-show-all">
+        <span>Show all</span>
+      </label>
+      <button type="button" id="models-refresh" class="icon-btn" title="Refresh benchmarks" aria-label="Refresh benchmarks">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12a9 9 0 1 1-3-6.7"/>
+          <path d="M21 3v6h-6"/>
+        </svg>
+      </button>
+    </div>
+    <div id="models-local-actions" class="mon-header-right" hidden>
+      <span id="models-local-updated" class="mon-updated" aria-live="polite"></span>
+      <button type="button" id="models-local-refresh" class="icon-btn" title="Refresh local serving" aria-label="Refresh local serving">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12a9 9 0 1 1-3-6.7"/>
+          <path d="M21 3v6h-6"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="models-main">
+    <nav class="models-subtabs" role="tablist" aria-label="Models sections">
+      <button type="button" id="models-tab-benchmarks" class="models-subtab is-active" role="tab"
+              data-models-tab="benchmarks" aria-selected="true" aria-controls="models-pane-benchmarks">Benchmarks</button>
+      <button type="button" id="models-tab-router" class="models-subtab" role="tab"
+              data-models-tab="router" aria-selected="false" aria-controls="models-pane-router">Router</button>
+      <button type="button" id="models-tab-vllm" class="models-subtab" role="tab"
+              data-models-tab="vllm" aria-selected="false" aria-controls="models-pane-vllm">vLLM</button>
+    </nav>
+
+    <div id="models-pane-benchmarks" class="models-pane is-active" role="tabpanel" aria-labelledby="models-tab-benchmarks">
+    <section class="models-hero" aria-labelledby="models-hero-title">
+      <p class="models-hero-label">Artificial Analysis</p>
+      <h1 id="models-hero-title">Models</h1>
+      <p id="models-hero-subtitle" class="models-hero-subtitle">
+        Third-party benchmark charts for every model Artificial Analysis tracks,
+        with the ones sharedagents has enabled marked on each chart.
+      </p>
+      <div id="models-kpis" class="models-kpis" aria-label="Benchmark summary">
+        <div class="models-kpi"><strong id="models-kpi-models">—</strong><span>Models tracked</span></div>
+        <div class="models-kpi"><strong id="models-kpi-enabled">—</strong><span>sharedagents enabled</span></div>
+        <div class="models-kpi"><strong id="models-kpi-index">—</strong><span>Index version</span></div>
+        <div class="models-kpi"><strong id="models-kpi-tier">—</strong><span>API tier</span></div>
+        <div class="models-kpi"><strong id="models-kpi-budget">—</strong><span>Requests left</span></div>
+        <div class="models-kpi"><strong id="models-kpi-source">—</strong><span>Source</span></div>
+      </div>
+    </section>
+
+    <p id="models-status" class="models-status" role="status" hidden></p>
+
+    <section id="models-empty" class="models-panel models-empty" aria-labelledby="models-empty-title" hidden>
+      <h2 id="models-empty-title">Artificial Analysis API key required</h2>
+      <p id="models-empty-body" class="models-empty-body"></p>
+      <ol id="models-empty-steps" class="models-empty-steps">
+        <li>
+          Create a free key on the Artificial Analysis
+          <a id="models-empty-signup" href="https://artificialanalysis.ai/login" target="_blank" rel="noopener noreferrer">login page</a>
+          (Free tier, internal use with attribution).
+        </li>
+        <li>
+          Append it to the operator env file, then reload this tab:
+          <code id="models-empty-command">echo 'ARTIFICIAL_ANALYSIS_API_KEY=your-key-here' &gt;&gt; ~/.sharedagents/.env</code>
+        </li>
+      </ol>
+      <p id="models-empty-note" class="models-empty-note">
+        The web server resolves the key from its own environment,
+        <code id="models-empty-envfile">~/.sharedagents/.env</code>, or <code>/etc/environment</code>. The key is
+        never sent to the browser and never written by this page.
+      </p>
+    </section>
+
+    <section id="models-local-deployments" class="models-panel models-local-deployments" aria-labelledby="models-local-title" hidden>
+      <header class="models-panel-header">
+        <div class="models-panel-heading">
+          <h2 id="models-local-title">Local models</h2>
+          <p class="models-chart-subtitle">Your local deployments. Chart points appear when benchmark metrics are available.</p>
+        </div>
+      </header>
+      <ul id="models-local-deployments-list" class="models-local-list"></ul>
+    </section>
+
+    <div id="models-legend-key" class="models-legend-key">
+      <span class="models-legend-key-item"><i class="is-enabled" aria-hidden="true"></i>sharedagents enabled</span>
+      <span class="models-legend-key-item"><i class="is-soft" aria-hidden="true"></i>enabled via an approximate match (≈)</span>
+      <span class="models-legend-key-item"><i class="is-plain" aria-hidden="true"></i>not enabled in sharedagents</span>
+      <span class="models-legend-key-item"><i class="is-local" aria-hidden="true"></i>running locally (sharedagents serves it here)</span>
+      <span class="models-legend-key-item models-legend-key-note" id="models-legend-note"></span>
+    </div>
+
+    <div class="models-controlbar" role="toolbar" aria-label="Chart controls">
+      <span id="models-controls-meta" class="models-controls-meta"></span>
+      <div class="models-viewswitch" role="group" aria-label="Chart view">
+        <button type="button" class="models-viewswitch-btn" id="models-view-pareto-btn" data-view="pareto" aria-pressed="true" title="Pareto scatter">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M4 20V4"/><path d="M4 20h16"/><circle cx="8" cy="15" r="1.6"/><circle cx="12" cy="11" r="1.6"/><circle cx="17" cy="6.5" r="1.6"/>
+          </svg>
+          <span class="models-viewswitch-label">Pareto</span>
+        </button>
+        <button type="button" class="models-viewswitch-btn" id="models-view-bars-btn" data-view="bars" aria-pressed="false" title="Bar charts">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M4 20V10M10 20V5M16 20v-7M22 20H2"/>
+          </svg>
+          <span class="models-viewswitch-label">Bars</span>
+        </button>
+        <button type="button" class="models-viewswitch-btn" id="models-view-table-btn" data-view="table" aria-pressed="false" title="Table view">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11M15 9v11"/>
+          </svg>
+          <span class="models-viewswitch-label">Table</span>
+        </button>
+      </div>
+      <button type="button" class="models-control-btn" id="models-selection-toggle" aria-expanded="false" aria-haspopup="dialog" title="Choose which models the Pareto chart shows">
+        <span id="models-selection-label">— of — models</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <button type="button" class="models-icon-btn" id="models-filter-toggle" aria-expanded="false" aria-haspopup="dialog" title="Filters" aria-label="Filters">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4-2v-4Z"/></svg>
+      </button>
+      <button type="button" class="models-icon-btn" id="models-settings-toggle" aria-expanded="false" aria-haspopup="dialog" title="Chart settings" aria-label="Chart settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+      </button>
+    </div>
+
+    <div id="models-popover-selection" class="models-popover" role="dialog" aria-label="Select models" hidden>
+      <div class="models-popover-head">
+        <h3>Models on the Pareto chart</h3>
+        <button type="button" class="models-popover-close" id="models-popover-close" aria-label="Close">×</button>
+      </div>
+      <div class="models-popover-controls">
+        <input type="search" id="models-select-search" class="models-select-search" placeholder="Search models…" aria-label="Search models">
+        <label class="models-select-provider-label" for="models-select-provider">Provider</label>
+        <select id="models-select-provider" class="models-select-provider"></select>
+      </div>
+      <div class="models-preset-row" role="group" aria-label="Presets">
+        <button type="button" class="models-preset-btn" id="models-preset-pareto">Pareto only</button>
+        <button type="button" class="models-preset-btn" id="models-preset-local">Local only</button>
+        <button type="button" class="models-preset-btn" id="models-preset-top10">Top 20</button>
+        <button type="button" class="models-preset-btn" id="models-preset-all">All</button>
+        <button type="button" class="models-preset-btn" id="models-preset-default">Reset to default</button>
+      </div>
+      <p class="models-select-summary">
+        <span id="models-select-count">—</span>
+        <span class="models-select-summary-actions">
+          <button type="button" class="models-link-btn" id="models-select-all">Select all</button>
+          <span class="models-action-sep" aria-hidden="true"></span>
+          <button type="button" class="models-link-btn" id="models-select-clear">Clear</button>
+        </span>
+      </p>
+      <!-- The wrapper carries the bottom fade: a scroll box whose max-height is
+           not an exact multiple of the row height otherwise slices the last row
+           through its glyphs. -->
+      <div class="models-select-listwrap">
+        <div id="models-select-list" class="models-select-list" role="group" aria-label="Models"></div>
+      </div>
+    </div>
+
+    <div id="models-popover-filter" class="models-popover models-popover-small" role="dialog" aria-label="Filters" hidden>
+      <div class="models-popover-head">
+        <h3>Filters</h3>
+      </div>
+      <label class="models-check" for="models-filter-latest">
+        <input type="checkbox" id="models-filter-latest" checked>
+        <span>Latest per family<small>Keeps only the newest model of each family (a model's effort variants all stay); locally-run models are never dropped.</small></span>
+      </label>
+      <label class="models-check" for="models-filter-local">
+        <input type="checkbox" id="models-filter-local">
+        <span>Locally-run models only<small>Only deployments this machine serves.</small></span>
+      </label>
+      <label class="models-check" for="models-filter-frontier">
+        <input type="checkbox" id="models-filter-frontier">
+        <span>On the Pareto frontier only<small>The non-dominated models.</small></span>
+      </label>
+    </div>
+
+    <div id="models-popover-settings" class="models-popover models-popover-small" role="dialog" aria-label="Chart settings" hidden>
+      <div class="models-popover-head">
+        <h3>Chart settings</h3>
+      </div>
+      <label class="models-check" for="models-setting-labels">
+        <input type="checkbox" id="models-setting-labels" checked>
+        <span>Model labels</span>
+      </label>
+      <label class="models-check" for="models-setting-grid">
+        <input type="checkbox" id="models-setting-grid" checked>
+        <span>Grid lines</span>
+      </label>
+      <label class="models-check" for="models-setting-log">
+        <input type="checkbox" id="models-setting-log" checked>
+        <span>Log cost axis<small>Off = linear cost axis (the reference uses a log scale).</small></span>
+      </label>
+    </div>
+
+    <div id="models-view-pareto" class="models-view">
+      <section class="models-panel models-chart-panel models-pareto-panel" aria-labelledby="models-title-pareto">
+        <header class="models-panel-header">
+          <div class="models-panel-heading">
+            <h2 id="models-title-pareto">Intelligence Index vs. Cost per Intelligence Index Task</h2>
+            <p class="models-chart-subtitle">Artificial Analysis Intelligence Index · Weighted average cost (USD) per Artificial Analysis Intelligence Index task</p>
+          </div>
+          <span id="models-meta-pareto" class="models-chart-meta">Loading…</span>
+        </header>
+        <div class="models-chart-scroll">
+          <div id="models-chart-pareto" class="models-chart models-chart-pareto" role="img" aria-label="Intelligence Index versus cost per Intelligence Index task"></div>
+        </div>
+        <div id="models-legend-pareto" class="models-chart-legend models-pareto-legend"></div>
+        <details class="models-why" id="models-why">
+          <summary class="models-why-toggle">
+            <svg class="models-why-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            <span>Why these models?</span>
+          </summary>
+          <p id="models-why-body" class="models-why-body"></p>
+        </details>
+        <div class="models-chart-table-wrap">
+          <table id="models-table-pareto" class="models-chart-table" aria-label="Intelligence Index versus cost per task"></table>
+        </div>
+      </section>
+    </div>
+
+    <div id="models-view-bars" class="models-view" hidden>
+    <section class="models-panel models-chart-panel" aria-labelledby="models-title-intelligence">
+      <header class="models-panel-header">
+        <div class="models-panel-heading">
+          <h2 id="models-title-intelligence">Intelligence</h2>
+          <p class="models-chart-subtitle">Artificial Analysis Intelligence Index · Higher is better</p>
+        </div>
+        <span id="models-meta-intelligence" class="models-chart-meta">Loading…</span>
+      </header>
+      <div class="models-chart-scroll">
+        <div id="models-chart-intelligence" class="models-chart" role="img" aria-label="Intelligence Index by model"></div>
+      </div>
+      <div id="models-legend-intelligence" class="models-chart-legend"></div>
+      <div class="models-chart-table-wrap">
+        <table id="models-table-intelligence" class="models-chart-table" aria-label="Intelligence Index by model"></table>
+      </div>
+    </section>
+
+    <section class="models-panel models-chart-panel" aria-labelledby="models-title-speed">
+      <header class="models-panel-header">
+        <div class="models-panel-heading">
+          <h2 id="models-title-speed">Speed</h2>
+          <p class="models-chart-subtitle">Output tokens per second · Higher is better</p>
+        </div>
+        <span id="models-meta-speed" class="models-chart-meta">Loading…</span>
+      </header>
+      <div class="models-chart-scroll">
+        <div id="models-chart-speed" class="models-chart" role="img" aria-label="Output tokens per second by model"></div>
+      </div>
+      <div id="models-legend-speed" class="models-chart-legend"></div>
+      <div class="models-chart-table-wrap">
+        <table id="models-table-speed" class="models-chart-table" aria-label="Output tokens per second by model"></table>
+      </div>
+    </section>
+
+    <section class="models-panel models-chart-panel" aria-labelledby="models-title-cost">
+      <header class="models-panel-header">
+        <div class="models-panel-heading">
+          <h2 id="models-title-cost">Cost per Task</h2>
+          <p class="models-chart-subtitle">Weighted average cost (USD) per Intelligence Index task · Lower is better</p>
+        </div>
+        <span id="models-meta-cost" class="models-chart-meta">Loading…</span>
+      </header>
+      <div class="models-chart-scroll">
+        <div id="models-chart-cost" class="models-chart" role="img" aria-label="Cost per Intelligence Index task by model"></div>
+      </div>
+      <div id="models-legend-cost" class="models-chart-legend"></div>
+      <div class="models-chart-table-wrap">
+        <table id="models-table-cost" class="models-chart-table" aria-label="Cost per Intelligence Index task by model"></table>
+      </div>
+    </section>
+    </div>
+
+    <div id="models-view-table" class="models-view" hidden>
+      <!-- No visible "Table" heading: the [Table] view button above is already
+           selected, so a second title and a descriptive paragraph only repeat
+           it. The heading stays for assistive tech; the count is the caption. -->
+      <section class="models-panel models-table-panel" aria-labelledby="models-title-table">
+        <header class="models-panel-header models-table-header">
+          <h2 id="models-title-table" class="models-sr-only">Selected models</h2>
+          <span id="models-meta-table" class="models-table-count"></span>
+        </header>
+        <div class="models-table-scroll">
+          <table id="models-table-view" class="models-data-table" aria-label="Selected models"></table>
+        </div>
+      </section>
+    </div>
+
+    <footer class="models-footer">
+      <a id="models-attribution" class="models-attribution" href="https://artificialanalysis.ai/" target="_blank" rel="noopener noreferrer">Data: Artificial Analysis</a>
+      <span id="models-footer-note" class="models-footer-note">
+        Free API tier · internal use with attribution · token prices are USD per 1M tokens and are
+        never mixed into the cost-per-task chart
+      </span>
+    </footer>
+    </div>
+
+    <div id="models-pane-router" class="models-pane" role="tabpanel" aria-labelledby="models-tab-router" hidden>
+      <section class="router-hero router-strip" aria-labelledby="router-hero-title">
+        <div class="router-strip-id">
+          <p class="usage-hero-label">Local router</p>
+          <h1 id="router-hero-title">—</h1>
+        </div>
+        <p id="router-hero-subtitle" class="usage-hero-subtitle">
+          Live load plus the exact routing order: numbered slots show which concurrent request goes to which replica, then the numbered fallback chain.
+        </p>
+        <div class="router-kpis" aria-label="Cluster summary">
+          <div class="usage-kpi"><strong id="router-kpi-servers">—</strong><span>Servers</span></div>
+          <div class="usage-kpi"><strong id="router-kpi-replicas">—</strong><span>LLM replicas up</span></div>
+          <div class="usage-kpi"><strong id="router-kpi-queries">—</strong><span>LLM running</span></div>
+          <div class="usage-kpi"><strong id="router-kpi-waiting">—</strong><span>LLM waiting</span></div>
+          <div class="usage-kpi"><strong id="router-kpi-capacity">—</strong><span>LLM cap</span></div>
+        </div>
+      </section>
+      <section class="router-models-panel" aria-labelledby="router-models-title">
+        <header class="usage-panel-header">
+          <h2 id="router-models-title">Routing</h2>
+          <div class="router-models-actions">
+            <span class="usage-generations-meta" id="router-models-meta">No models configured</span>
+            <button type="button" id="router-model-add" class="usage-prices-save">Add model</button>
+          </div>
+        </header>
+        <p class="usage-prices-note">
+          Priority runs top to bottom. Replicas in config order (<strong>P1</strong>, <strong>P2</strong>, …) fill the numbered request slots up to each cap, then the fallback hops (<strong>F1</strong>, <strong>F2</strong>, …). A full chain returns <code>503</code>. Edit the operator list in <code>vllm-router.yaml</code>.
+        </p>
+        <div id="router-models-list" class="router-models-list" aria-live="polite"></div>
+        <form id="router-model-editor" class="router-model-editor" hidden>
+          <input type="hidden" id="router-model-original-id" value="">
+          <div class="router-model-fields">
+            <label>Model id
+              <input id="router-model-id" name="id" type="text" autocomplete="off"
+                     placeholder="local-llm" required>
+            </label>
+            <label>Kind
+              <select id="router-model-kind" name="kind">
+                <option value="llm">llm</option>
+                <option value="embedding">embedding</option>
+                <option value="reranker">reranker</option>
+                <option value="asr">asr</option>
+                <option value="tts">tts</option>
+              </select>
+            </label>
+            <label>Pool cap
+              <input id="router-model-max" name="max_active_requests" type="number" min="0" step="1" placeholder="4">
+            </label>
+          </div>
+          <div class="router-replica-head">
+            <span>Replicas</span>
+            <button type="button" id="router-replica-add" class="router-text-btn">Add replica</button>
+          </div>
+          <div id="router-replica-rows" class="router-replica-rows"></div>
+          <label class="router-fallback-label">Fallbacks
+            <textarea id="router-model-fallbacks" rows="2"
+                      placeholder="pool:other-model&#10;external:cloud-backup"></textarea>
+          </label>
+          <p id="router-model-error" class="router-model-error" hidden></p>
+          <div class="router-model-form-actions">
+            <button type="submit" id="router-model-save" class="usage-prices-save">Save model</button>
+            <button type="button" id="router-model-cancel" class="router-text-btn">Cancel</button>
+          </div>
+        </form>
+      </section>
+      <div id="usage-router-status" class="router-fleet" aria-live="polite"></div>
+    </div>
+
+    <div id="models-pane-vllm" class="models-pane" role="tabpanel" aria-labelledby="models-tab-vllm" hidden>
+      <section class="router-hero router-strip" aria-labelledby="vllm-hero-title">
+        <div class="router-strip-id">
+          <p class="usage-hero-label">vLLM serving</p>
+          <h1 id="vllm-hero-title">—</h1>
+        </div>
+        <p id="vllm-hero-subtitle" class="usage-hero-subtitle">
+          LLM running now, request history, last-turn stats, and process logs. Other kinds: up/down and calls.
+        </p>
+        <div class="router-kpis vllm-kpis" aria-label="vLLM summary">
+          <div class="usage-kpi vllm-kpi-now"><strong id="vllm-kpi-running">—</strong><span>LLM running now</span></div>
+          <div class="usage-kpi"><strong id="vllm-kpi-waiting">—</strong><span>LLM queued</span></div>
+          <div class="usage-kpi"><strong id="vllm-kpi-capacity">—</strong><span>LLM cap</span></div>
+          <div class="usage-kpi"><strong id="vllm-kpi-replicas">—</strong><span>LLM replicas up</span></div>
+          <div class="usage-kpi"><strong id="vllm-kpi-process">—</strong><span>User unit</span></div>
+        </div>
+      </section>
+
+      <section class="usage-panel local-bench-panel" aria-labelledby="vllm-bench-title">
+        <header class="usage-panel-header">
+          <h2 id="vllm-bench-title">Local benchmarks</h2>
+          <span class="usage-generations-meta" id="vllm-bench-meta">prefill + generation · 0 ctx and selected ctx</span>
+        </header>
+        <form id="vllm-bench-form" class="local-bench-controls">
+          <div class="local-bench-field">
+            <label for="vllm-bench-context">Context tokens</label>
+            <input id="vllm-bench-context" type="number" min="0" max="262144" step="1024" value="65536">
+            <span class="local-bench-hint">0 ctx always runs too</span>
+          </div>
+          <div class="local-bench-field">
+            <label for="vllm-bench-output">Gen tokens</label>
+            <input id="vllm-bench-output" type="number" min="16" max="2048" step="1" value="256">
+          </div>
+          <button type="submit" id="vllm-bench-run" class="usage-prices-save">Run benchmark</button>
+          <div class="local-bench-target-head">
+            <span>Replicas</span>
+            <button type="button" class="router-text-btn" id="vllm-bench-all">All</button>
+            <button type="button" class="router-text-btn" id="vllm-bench-none">None</button>
+          </div>
+          <div id="vllm-bench-targets" class="local-bench-targets" aria-label="Benchmark replicas"></div>
+        </form>
+        <p id="vllm-bench-status" class="local-bench-status" role="status" hidden></p>
+        <div class="usage-generations-scroll">
+          <table class="usage-generations-table local-bench-table" aria-label="Local benchmark results">
+            <thead>
+              <tr>
+                <th>Server</th>
+                <th>Pool</th>
+                <th>Context</th>
+                <th>Prefill tok/s</th>
+                <th>Gen tok/s</th>
+                <th>Decode</th>
+                <th>TTFT</th>
+                <th>Total</th>
+                <th>Prompt</th>
+                <th>Out</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="vllm-bench-body">
+              <tr><td colspan="11" class="usage-na">No benchmark run yet</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="local-bench-note">Prefill is time to the first generated token (includes queue wait). Each pass forces the full generation length (ignore_eos) so decode tok/s has a real measurement window. All selected replicas run the same pass concurrently; rows update live. One run at a time.</p>
+      </section>
+
+      <section class="usage-panel usage-chart-panel usage-chart-only" aria-labelledby="vllm-chart-title">
+        <header class="usage-panel-header">
+          <h2 id="vllm-chart-title">LLM requests</h2>
+          <div class="usage-chart-controls">
+            <div class="usage-view-toggle" role="group" aria-label="Time window">
+              <button type="button" data-vllm-chart-window="24h">24h</button>
+              <button type="button" class="active" data-vllm-chart-window="7d" aria-pressed="true">7d</button>
+              <button type="button" data-vllm-chart-window="30d">30d</button>
+              <button type="button" data-vllm-chart-window="90d">90d</button>
+            </div>
+            <div class="usage-view-toggle" role="group" aria-label="Series">
+              <button type="button" class="active" data-vllm-chart-mode="bucket" aria-pressed="true">Bucket</button>
+              <button type="button" data-vllm-chart-mode="cumulative">Cumulative</button>
+            </div>
+          </div>
+        </header>
+        <div id="vllm-chart" class="usage-chart" role="img" aria-label="Local vLLM requests over time"></div>
+        <div id="vllm-chart-legend" class="usage-chart-legend"></div>
+      </section>
+
+      <section class="usage-panel local-replicas-panel" aria-labelledby="vllm-replicas-title">
+        <header class="usage-panel-header">
+          <h2 id="vllm-replicas-title">LLM replicas</h2>
+          <span class="usage-generations-meta" id="vllm-replicas-meta">live from /metrics</span>
+        </header>
+        <div class="usage-generations-scroll">
+          <table class="usage-generations-table local-replica-table" aria-label="vLLM replica load">
+            <thead>
+              <tr>
+                <th>Server</th>
+                <th>Pool</th>
+                <th>Replica</th>
+                <th>Running</th>
+                <th>Waiting</th>
+                <th>KV cache</th>
+                <th>tok/s</th>
+                <th>Cap</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="vllm-replicas-body">
+              <tr><td colspan="9" class="usage-na">No replicas reported</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="usage-panel local-other-panel" id="vllm-decision-panel" aria-labelledby="vllm-decision-title" hidden>
+        <header class="usage-panel-header">
+          <h2 id="vllm-decision-title">Decision models</h2>
+          <span class="usage-generations-meta">status and calls</span>
+        </header>
+        <div class="usage-generations-scroll">
+          <table class="usage-generations-table local-other-table" aria-label="Decision model status">
+            <thead>
+              <tr>
+                <th>Pool</th>
+                <th>Kind</th>
+                <th>Status</th>
+                <th>Calls</th>
+              </tr>
+            </thead>
+            <tbody id="vllm-decision-body">
+              <tr><td colspan="4" class="usage-na">No decision models reported</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="usage-panel local-other-panel" aria-labelledby="vllm-other-title">
+        <header class="usage-panel-header">
+          <h2 id="vllm-other-title">Other models</h2>
+          <span class="usage-generations-meta" id="vllm-other-meta">status and calls</span>
+        </header>
+        <div class="usage-generations-scroll">
+          <table class="usage-generations-table local-other-table" aria-label="Non-LLM model status">
+            <thead>
+              <tr>
+                <th>Pool</th>
+                <th>Kind</th>
+                <th>Status</th>
+                <th>Calls</th>
+              </tr>
+            </thead>
+            <tbody id="vllm-other-body">
+              <tr><td colspan="4" class="usage-na">No other models reported</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="usage-panel local-turns-panel" aria-labelledby="vllm-turns-title">
+        <header class="usage-panel-header">
+          <h2 id="vllm-turns-title">Last turns</h2>
+          <span class="usage-generations-meta" id="vllm-turns-meta">from process logs</span>
+        </header>
+        <div id="vllm-turns" class="local-turns" aria-live="polite"></div>
+      </section>
+
+      <section class="usage-panel local-mux-panel" aria-labelledby="vllm-mux-title">
+        <header class="usage-panel-header">
+          <h2 id="vllm-mux-title">LLM routed totals</h2>
+          <span class="usage-generations-meta" id="vllm-mux-meta">vllm_mux_route_total · LLM only</span>
+        </header>
+        <div id="vllm-mux-routes" class="local-mux-grid" aria-live="polite"></div>
+      </section>
+
+      <section class="usage-panel local-logs-panel" aria-labelledby="vllm-logs-title">
+        <header class="usage-panel-header">
+          <h2 id="vllm-logs-title">Process logs</h2>
+          <span class="usage-generations-meta" id="vllm-logs-meta">last 250 lines</span>
+        </header>
+        <div id="vllm-logs" class="local-logs" aria-live="polite"></div>
+      </section>
+    </div>
+    <p id="models-local-status" class="usage-status" role="status" hidden></p>
+
+  </main>
+</div>
+
+<script src="{{ base }}/static/nav.js?v={{ asset_rev('nav.js') }}"></script>
+<script src="{{ base }}/static/local.js?v={{ asset_rev('local.js') }}"></script>
+<script src="{{ base }}/static/models.js?v={{ asset_rev('models.js') }}"></script>
+</body>
+</html>

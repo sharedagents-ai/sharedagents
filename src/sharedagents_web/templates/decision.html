@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>{{ site_title }} · decision</title>
+<meta name="sharedagents-base" content="{{ base }}">
+<link rel="stylesheet" href="{{ base }}/static/style.css?v={{ asset_rev('style.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/menu.css?v={{ asset_rev('menu.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/agents.css?v={{ asset_rev('agents.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/tasks.css?v={{ asset_rev('tasks.css') }}">
+<link rel="stylesheet" href="{{ base }}/static/decision.css?v={{ asset_rev('decision.css') }}">
+{% include "_ui_zoom.html" %}
+</head>
+<body class="monitor-body decision-body">
+{% set active = 'decision' %}
+{% include "_menu.html" %}
+{% from "_menu.html" import menu_button %}
+
+<div id="decision-app" class="is-loading">
+  <header class="mon-header decision-header">
+    {{ menu_button() }}
+    <a class="mon-logo" href="{{ base }}/" title="Back to chat">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+        <path d="M2 17l10 5 10-5"/>
+        <path d="M2 12l10 5 10-5"/>
+      </svg>
+      <span>{{ site_title }}</span>
+    </a>
+    <div class="mon-title">
+      <h1>Decision</h1>
+      <span id="decision-conn" class="mon-conn mon-conn-unknown" title="Decision API status"></span>
+    </div>
+    <div class="mon-header-right">
+      <span id="decision-updated" class="mon-updated" aria-live="polite"></span>
+      <button type="button" id="decision-refresh" class="icon-btn" title="Refresh backends" aria-label="Refresh backends">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12a9 9 0 1 1-3-6.7"/>
+          <path d="M21 3v6h-6"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="decision-main">
+    <p class="decision-hint">Give a model context, ask a question, and explore its answers.</p>
+    <p id="decision-status" class="decision-status" role="status" hidden></p>
+
+    <div class="decision-panel decision-model-summary">
+      <span class="decision-meta">Decision model</span>
+      <strong id="decision-backend-meta">Loading models…</strong>
+      <button type="button" id="decision-model-open" class="tasks-btn tasks-btn-ghost" aria-haspopup="dialog">Change model</button>
+    </div>
+
+    <div class="decision-workspace"><div class="decision-editor">
+    <section class="decision-panel" aria-labelledby="decision-state-title">
+      <header class="decision-panel-header">
+        <h2 id="decision-state-title">Context</h2>
+        <button type="button" id="decision-load-sample" class="tasks-btn tasks-btn-ghost">Load sample</button>
+      </header>
+      <label class="decision-field">
+        <span>What the model should judge</span>
+        <textarea id="decision-state" rows="8" spellcheck="false"
+          placeholder="Paste text or JSON. Plain text is formatted automatically when you run."></textarea>
+      </label>
+    </section>
+
+    <section class="decision-panel" aria-labelledby="decision-questions-title">
+      <header class="decision-panel-header">
+        <h2 id="decision-questions-title">Questions <span id="decision-question-count" class="decision-meta">0 / 8</span></h2>
+        <button type="button" id="decision-add-question" class="tasks-btn tasks-btn-ghost">Add question</button>
+      </header>
+      <p class="decision-hint">Ask for a choice, a rating, or a yes/no probability. Add up to 8 questions.</p>
+      <div class="decision-suggest-controls">
+        <button type="button" id="decision-suggest-picker" class="tasks-btn tasks-btn-ghost" aria-haspopup="dialog">Choose agent &amp; model</button>
+        <button type="button" id="decision-suggest" class="tasks-btn tasks-btn-primary" disabled>Suggest questions</button>
+      </div>
+      <p id="decision-suggest-status" class="decision-meta" role="status" aria-live="polite">Add context and choose an agent to suggest questions.</p>
+      <a id="decision-suggest-session" class="decision-meta" target="_blank" rel="noopener" hidden>Open suggestion session</a>
+      <div id="decision-questions" class="decision-questions"></div>
+      <p id="decision-questions-empty" class="decision-empty" hidden>No questions yet. Add a question to get started.</p>
+    </section>
+
+    <div class="decision-actions">
+      <button type="button" id="decision-score" class="tasks-btn tasks-btn-primary" disabled>Run decision</button>
+      <span id="decision-score-hint" class="decision-meta">Choose a model to begin</span>
+    </div>
+
+    </div>
+    <section class="decision-panel decision-output" aria-labelledby="decision-results-title">
+      <header class="decision-panel-header">
+        <h2 id="decision-results-title">Answers <span id="decision-latency" class="decision-meta" title="Total request time, including network and server processing" role="status" hidden></span></h2>
+        <label class="decision-toggle" for="decision-show-raw">
+          <input type="checkbox" id="decision-show-raw">
+          <span>Raw JSON</span>
+        </label>
+      </header>
+      <p id="decision-progress" class="decision-status" role="status" aria-live="polite" hidden></p>
+      <div id="decision-results-empty" class="decision-empty">Your answers will appear here.<br>Run the example or write your own question.</div>
+      <div id="decision-results" class="decision-results" aria-live="polite" hidden></div>
+      <pre id="decision-raw" class="decision-raw" hidden></pre>
+    </section>
+    </div>
+  </main>
+</div>
+
+    <dialog id="decision-model-dialog" class="decision-model-dialog" aria-labelledby="decision-backend-title">
+      <header class="decision-panel-header">
+        <h2 id="decision-backend-title">Model</h2>
+        <button type="button" id="decision-model-close" class="amp-close" aria-label="Close decision model picker">×</button>
+      </header>
+      <label class="decision-field decision-search"><span>Search models</span><input id="decision-model-search" type="search" placeholder="Search by provider or model"></label>
+      <div id="decision-providers" class="amp-provider-tabs" role="tablist" aria-label="Providers"></div>
+      <div id="decision-backends" class="amp-model-cards" role="group" aria-label="Decision models"></div>
+      <label class="decision-field" id="decision-checkpoint-wrap" hidden>
+        <span>Checkpoint</span>
+        <select id="decision-checkpoint"></select>
+      </label>
+    </dialog>
+
+
+<script src="{{ base }}/static/nav.js?v={{ asset_rev('nav.js') }}"></script>
+<script src="{{ base }}/static/agent_model_catalog.js?v={{ asset_rev('agent_model_catalog.js') }}"></script>
+<script src="{{ base }}/static/agent_model_picker.js?v={{ asset_rev('agent_model_picker.js') }}"></script>
+<script src="{{ base }}/static/agent_model_dialog.js?v={{ asset_rev('agent_model_dialog.js') }}"></script>
+<script src="{{ base }}/static/decision.js?v={{ asset_rev('decision.js') }}"></script>
+</body>
+</html>

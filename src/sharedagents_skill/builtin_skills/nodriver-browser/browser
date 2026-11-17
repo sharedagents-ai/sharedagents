@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Nodriver Browser launcher shim
+# Runs browser.py in the correct venv with proper env.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+VENV_PYTHON="$SCRIPT_DIR/scripts/venv/bin/python"
+BROWSER_PY="$SCRIPT_DIR/scripts/browser.py"
+
+# Pass the inherited DISPLAY through unchanged. Do NOT default it to :0 —
+# on headless hosts :0 is dead and clobbers the --display flag.
+# browser.py resolves the display (flag > env > autodetected X socket)
+# and exports DISPLAY itself before launching Chrome.
+exec "$VENV_PYTHON" "$BROWSER_PY" "$@"
