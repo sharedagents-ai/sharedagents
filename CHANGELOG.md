@@ -14,7 +14,8 @@ this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   allowing the module to import and serialize reservations on Windows.
 - Keep session visibility tests independent of a real gateway and read browser
   JavaScript as UTF-8 on Windows.
-- Use Intel macOS CI runners for the complete Python 3.10–3.14 test matrix.
+- Use Intel macOS CI runners and install libmagic for the complete Python
+  3.10–3.14 test matrix.
 
 ## [1.0.1] - 2026-11-17
 
