@@ -31,7 +31,7 @@
     [/\bgeneral\b/, "💬"],
     [/web ?ui|webui|\bweb\b|frontend|ui\b/, "🖥️"],
     [/health|medical|doctor/, "🩺"],
-    [/wiki|docs?|research/, "📚"],
+    [/docs?|research/, "📚"],
     [/telegram/, "✈️"],
     [/gpu|cuda|vllm/, "🎮"],
     [/shared ?data|database|\bdata\b/, "🗄️"],
