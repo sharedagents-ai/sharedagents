@@ -6,13 +6,14 @@ Serves:
   /api/models    — list available agents (proxied from gateway)
   /api/chat      — chat endpoint with SSE streaming
   /api/sessions  — list/create sessions
-  /api/verify    — verify dashboard JWT token
+  /api/verify    — verify the authenticated browser identity
 
 Architecture:
   - Proxies chat requests to the sharedagents gateway's OpenAI-compatible
     endpoint at http://127.0.0.1:8100/openai/v1/
-  - Manages conversation sessions in-memory (maps to gateway sessions)
-  - Auth via dashboard JWT cookie (forwarded to /verify-token)
+  - Stores browser session mappings and native authentication in runtime SQLite
+  - Native authentication and account/session access checks are primary;
+    optional external authentication must be enabled explicitly
 """
 
 import gzip

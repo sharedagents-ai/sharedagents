@@ -54,7 +54,18 @@ RULES = [
     re.compile(r"https?://[^/\s<>\"']*gitea[^\s<>\"']*|https?://[a-z0-9.-]+(?::\d+)?/gitea(?:/|\b)", re.I),
     re.compile(r"(?:ssh|git)://[^\s<>\"']*gitea[^\s<>\"']*", re.I),
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----", re.I),
+    re.compile(r"(?<![\d.])100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\." + OCTET + r"\." + OCTET + r"(?![\d.])"),
+    re.compile(r"\b(?:[a-z0-9-]+\.)+ts\.net\b", re.I),
 ]
+# Credential checks apply even inside reserved example URLs. Only identity
+# references may use that exemption; a real token is never safe to publish.
+CREDENTIAL_RULE = re.compile(
+    r"\b(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{60,}|"
+    r"pypi-[A-Za-z0-9_-]{80,}|sk-(?:proj-[A-Za-z0-9_-]{60,}|"
+    r"ant-api\d{2}-[A-Za-z0-9_-]{50,}|[A-Za-z0-9]{40,})|"
+    r"AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16})\b",
+    re.I,
+)
 DENYLIST: list[str] = []
 # URLs on RFC 2606 / RFC 6761 reserved names cannot point at a private host.
 RESERVED_URL = re.compile(
@@ -202,7 +213,10 @@ def load_denylist(path: str) -> list[str]:
 
 
 def violations(data: bytes) -> bool:
-    text = RESERVED_URL.sub("", data.decode("latin-1").lower())
+    raw = data.decode("latin-1")
+    if CREDENTIAL_RULE.search(raw):
+        return True
+    text = RESERVED_URL.sub("", raw.lower())
     if any(name in text for name in DENYLIST) or any(rule.search(text) for rule in RULES):
         return True
     # The latin-1 view never matches a non-ASCII term (an accented name) in

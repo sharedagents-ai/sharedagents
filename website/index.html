@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Run AI agents on infrastructure you control. A terminal, browser workspace, and inspectable execution in one open-source Python package."
+    />
+    <meta name="theme-color" content="#0a0d0b" />
+    <meta
+      property="og:title"
+      content="SharedAgents — Your agents. Your workspace."
+    />
+    <meta
+      property="og:description"
+      content="An open-source workspace for AI agents, with conversations, task tracking, and usage in view."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://sharedagents.ai/" />
+    <link rel="canonical" href="https://sharedagents.ai/" />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+    <title>SharedAgents — Your agents. Your workspace.</title>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-header wrap">
+      <a class="wordmark" href="./" aria-label="SharedAgents home"
+        ><svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="m12 2 10 5-10 5L2 7l10-5Zm-10 10 10 5 10-5M2 17l10 5 10-5"
+          /></svg
+        >SharedAgents</a
+      >
+      <nav aria-label="Main navigation">
+        <a href="#workspace">Workspace</a><a href="docs/">Docs</a
+        ><a href="docs/development/setup/">Contribute</a
+        ><a
+          class="nav-source"
+          href="https://github.com/sharedagents-ai/sharedagents"
+          >GitHub <span aria-hidden="true">↗</span></a
+        >
+      </nav>
+    </header>
+    <main id="main">
+      <section class="hero wrap" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">
+            <span class="status-dot" aria-hidden="true"></span> Open source ·
+            Python · MIT
+          </p>
+          <h1 id="hero-title">
+            Your agents.<br />Your <span>workspace.</span>
+          </h1>
+          <p class="hero-intro">
+            Run AI agents on infrastructure you control. Follow the
+            conversation, inspect the work, and keep your tasks in view.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="docs/getting-started/installation/"
+              >Get started <span aria-hidden="true">↗</span></a
+            ><a class="text-link" href="#workspace"
+              >Explore the interface <span aria-hidden="true">↓</span></a
+            >
+          </div>
+          <div class="install">
+            <div>
+              <span class="terminal-prompt" aria-hidden="true">$</span
+              ><code id="install-command">pip install "sharedagents[web]"</code>
+            </div>
+            <button
+              id="copy-install"
+              type="button"
+              aria-label="Copy installation command"
+            >
+              Copy
+            </button>
+          </div>
+          <p
+            class="install-note"
+            id="copy-status"
+            role="status"
+            aria-live="polite"
+          >
+            Python 3.10–3.14 ·
+            <a href="https://pypi.org/project/sharedagents/"
+              >Available on PyPI</a
+            >
+          </p>
+        </div>
+        <div class="hero-visual">
+          <div class="image-frame">
+            <div class="frame-top">
+              <span>sharedagents / tasks</span
+              ><span class="demo-tag">Demo data</span>
+            </div>
+            <img
+              src="assets/demo/tasks-desktop.png"
+              width="2880"
+              height="1800"
+              alt="SharedAgents task board showing sample work in Needs input, Working, and Completed columns."
+            />
+          </div>
+          <p class="figure-note">
+            <span>01 / THE WORKSPACE</span
+            ><span>One place to follow the work.</span>
+          </p>
+        </div>
+      </section>
+      <section class="principles wrap" aria-label="Platform at a glance">
+        <div>
+          <span class="small-label">CHOOSE THE MODEL</span>
+          <p>Connect a local model server or a supported hosted provider.</p>
+        </div>
+        <div>
+          <span class="small-label">FOLLOW THE EXECUTION</span>
+          <p>Inspect conversations, model calls, tool activity, and usage.</p>
+        </div>
+        <div>
+          <span class="small-label">KEEP YOUR CONTEXT</span>
+          <p>Store sessions and Markdown memory in your SharedAgents home.</p>
+        </div>
+      </section>
+      <section
+        class="workspace-section wrap"
+        id="workspace"
+        aria-labelledby="workspace-title"
+      >
+        <div class="section-heading">
+          <p class="eyebrow">A closer look</p>
+          <h2 id="workspace-title">
+            From the first prompt<br />to the next step.
+          </h2>
+          <p>
+            A browser workspace alongside the terminal. These are captures of
+            the shipped interface with isolated demo data.
+          </p>
+        </div>
+        <div
+          class="tour-tabs"
+          role="group"
+          aria-label="Choose an interface preview"
+        >
+          <button
+            type="button"
+            class="active"
+            data-view="welcome"
+            aria-pressed="true"
+          >
+            Conversations</button
+          ><button type="button" data-view="tasks" aria-pressed="false">
+            Task board</button
+          ><button type="button" data-view="activity" aria-pressed="false">
+            Usage</button
+          ><button type="button" data-view="development" aria-pressed="false">
+            Development
+          </button>
+        </div>
+        <figure class="tour-figure">
+          <button
+            type="button"
+            id="expand-image"
+            aria-label="Open interface screenshot at full size"
+          >
+            <img
+              id="tour-image"
+              src="assets/demo/welcome-desktop.png"
+              width="2880"
+              height="1800"
+              loading="lazy"
+              alt="A new SharedAgents conversation, ready for a prompt and model selection."
+            /><span class="expand-label">View full image ↗</span>
+          </button>
+          <figcaption>
+            <strong id="tour-title">Start with a conversation.</strong
+            ><span id="tour-description"
+              >Choose an agent and model, write your request, and continue in a
+              persistent session.</span
+            >
+          </figcaption>
+        </figure>
+        <a class="text-link" href="docs/getting-started/interface-tour/"
+          >Take the interface tour <span aria-hidden="true">→</span></a
+        >
+      </section>
+      <section class="start-section wrap" aria-labelledby="start-title">
+        <div>
+          <p class="eyebrow">Make it your own</p>
+          <h2 id="start-title">A small first step.<br />Room to build.</h2>
+          <p>
+            Install the parts you need. Add optional channels, voice, and
+            integrations as your workflow grows.
+          </p>
+        </div>
+        <ol class="steps">
+          <li>
+            <span>01</span>
+            <div>
+              <h3>Install and configure</h3>
+              <p>
+                Install the browser extra, run <code>sharedagents</code>, and
+                follow the first-run setup for your model endpoint and agent.
+              </p>
+              <a href="docs/getting-started/installation/"
+                >Installation guide →</a
+              >
+            </div>
+          </li>
+          <li>
+            <span>02</span>
+            <div>
+              <h3>Open your workspace</h3>
+              <p>
+                Use <code>python -m sharedagents.serve</code> to run the stack
+                in the foreground. Configure login before exposing it to others.
+              </p>
+              <a href="docs/guides/deployment/">Deployment guide →</a>
+            </div>
+          </li>
+          <li>
+            <span>03</span>
+            <div>
+              <h3>Contribute a focused change</h3>
+              <p>
+                Find the package that owns the behavior, use a feature branch,
+                and send a pull request with relevant checks.
+              </p>
+              <a href="docs/development/setup/">Contributor setup →</a>
+            </div>
+          </li>
+        </ol>
+      </section>
+      <section class="contribute wrap" aria-labelledby="contribute-title">
+        <div>
+          <p class="eyebrow">Built in the open</p>
+          <h2 id="contribute-title">
+            Your next contribution<br />can start here.
+          </h2>
+          <p>
+            Reproducible bug reports, clearer guides, and focused fixes all
+            help. The architecture map and testing guide show where to begin.
+          </p>
+          <div class="contribution-links">
+            <a href="docs/development/architecture/"
+              >Architecture <span aria-hidden="true">↗</span></a
+            ><a href="docs/development/testing/"
+              >Testing <span aria-hidden="true">↗</span></a
+            ><a
+              href="https://github.com/sharedagents-ai/sharedagents/blob/main/CONTRIBUTING.md"
+              >Contribution guide <span aria-hidden="true">↗</span></a
+            >
+          </div>
+        </div>
+        <pre aria-label="Repository structure"><code><span>sharedagents/</span>
+├── src/          <i>Application packages</i>
+├── tests/        <i>Tests and fixtures</i>
+├── docs/         <i>Guides and references</i>
+├── examples/     <i>Configuration examples</i>
+├── scripts/      <i>Repository utilities</i>
+└── website/      <i>This website</i></code></pre>
+      </section>
+    </main>
+    <footer class="site-footer wrap">
+      <a class="wordmark" href="./">SharedAgents</a>
+      <p>Open source. MIT licensed.</p>
+      <nav aria-label="Footer navigation">
+        <a href="docs/">Documentation</a
+        ><a
+          href="https://github.com/sharedagents-ai/sharedagents/blob/main/SECURITY.md"
+          >Security</a
+        ><a href="https://pypi.org/project/sharedagents/">PyPI</a
+        ><a href="https://github.com/sharedagents-ai/sharedagents">GitHub</a>
+      </nav>
+    </footer>
+    <dialog id="image-dialog" aria-label="Interface screenshot">
+      <button type="button" id="close-image" aria-label="Close screenshot">
+        Close ✕</button
+      ><img id="dialog-image" alt="" />
+    </dialog>
+  </body>
+</html>

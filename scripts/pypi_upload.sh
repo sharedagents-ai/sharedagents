@@ -25,4 +25,7 @@ if ! compgen -G "dist/*.whl" >/dev/null && ! compgen -G "dist/*.tar.gz" >/dev/nu
   exit 1
 fi
 
-exec python3 -m twine upload dist/* --skip-existing -u __token__ -p "$SHAREDAGENTS_PYPI_TOKEN"
+# Keep credentials out of the process argument list.
+export TWINE_USERNAME=__token__
+export TWINE_PASSWORD="$SHAREDAGENTS_PYPI_TOKEN"
+exec python3 -m twine upload dist/* --skip-existing --non-interactive

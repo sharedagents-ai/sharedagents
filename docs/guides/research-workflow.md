@@ -6,6 +6,11 @@ SharedData is not imported by the sharedagents client or added to the lean core'
 dependencies. Install/run the backend in an interpreter with its own required
 dependencies and storage configuration.
 
+This integration is optional and needs a separately supplied compatible
+ResearchMCP backend and data store. A default SharedAgents installation does
+not include that backend or any research data. Other SharedAgents features do
+not require access to it.
+
 ## Layers
 
 SharedData is the data layer: it stores sources and model outputs, validates

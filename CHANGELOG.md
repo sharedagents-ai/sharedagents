@@ -6,6 +6,33 @@ this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-17
+
+### Security
+
+- Exclude retired UI screenshots from the package. Public interface images now
+  use isolated, labeled demo data and receive visual and metadata review.
+- Pass the PyPI upload token through the environment instead of process arguments.
+
+### Documentation
+
+- Add a desktop and mobile interface tour, reproducible captures with isolated
+  demo data, and a static project website with the versioned documentation.
+- Organize installation, configuration, operator guides, architecture, and
+  contributor setup under `docs/`; keep the README focused on getting started.
+- Add project governance, support routes, a maintainer guide, and credential-free
+  configuration examples. Extend repository privacy ignores and scan examples
+  in CI and pre-commit checks.
+
+### Fixed
+
+- Align the fallback requirements with the lean core package dependencies;
+  optional integrations remain available through extras.
+- Extend publication scans to common credential formats and private overlay
+  addresses; include examples and GitHub collaboration files in identity checks.
+- Remove unused UI captures and refresh the WebUI's standalone and authentication
+  documentation to match the installed package entry points.
+
 ## [1.0.0] - 2026-11-17
 
 First public SharedAgents platform release.
@@ -19,7 +46,7 @@ First public SharedAgents platform release.
 - The Dev tab forge client is generic: configure it with `FORGE_KIND`,
   `FORGE_URL`, `FORGE_TOKEN` and optional `FORGE_API_URL` /
   `FORGE_USER_AGENT` (Gitea or GitHub). The older `GITEA_*` / `GITHUB_*`
-  names still work. See `docs/forge.md`.
+  names still work. See `docs/guides/forge.md`.
 - `sharedagents web fetch-voice-models` refuses any wake-word model without
   a pinned SHA-256; the optional `alexa`, `hey_mycroft` and `hey_rhasspy`
   models are now pinned too. No web restart is needed after a fetch.
@@ -52,7 +79,7 @@ First public SharedAgents platform release.
 
 ### Documentation
 
-- `docs/voice-models.md` covers the wake-word model source, licence split
+- `docs/guides/voice-models.md` covers the wake-word model source, licence split
   (Apache-2.0 code, CC BY-NC-SA 4.0 models), storage under
   `SHAREDAGENTS_HOME`, the push-to-talk fallback when models are missing, and
   the real `realtime.client_wake.*` settings; the README `[realtime]` extra

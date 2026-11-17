@@ -8,6 +8,8 @@ import re
 import sys
 from pathlib import Path
 
+from packaging.requirements import Requirement
+
 try:
     import tomllib
 except ModuleNotFoundError:  # Python 3.10; pytest depends on tomli there
@@ -51,3 +53,15 @@ def test_core_packages_import_only_declared_core_dependencies_at_module_level() 
                     if module not in sys.stdlib_module_names | first_party | declared:
                         undeclared.setdefault(module, []).append(str(path.relative_to(ROOT / "src")))
     assert undeclared == {}
+
+
+def test_fallback_requirements_match_the_lean_package_install() -> None:
+    """Both supported bootstrap paths must resolve the same core requirements."""
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]
+    packaged = {str(Requirement(spec)) for spec in project["dependencies"]}
+    fallback = {
+        str(Requirement(line.strip()))
+        for line in (ROOT / "src" / "requirements.txt").read_text().splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+    assert fallback == packaged

@@ -4,6 +4,12 @@ Thanks for helping out. This file covers the local dev loop; for bug reports
 and feature requests use the issue templates under
 [Issues](https://github.com/sharedagents-ai/sharedagents/issues).
 
+Start with the [architecture map](docs/development/architecture.md) to find the
+package that owns your change. The [development guide](docs/development/setup.md)
+covers environment setup, and the [testing guide](docs/development/testing.md)
+explains verification by change type. Questions belong in [support](SUPPORT.md);
+security reports follow [SECURITY.md](SECURITY.md).
+
 ## Development setup
 
 Python 3.10–3.14 is supported (the `[whatsapp]` extra needs 3.11+).
@@ -36,7 +42,7 @@ ruff format --check src tests scripts     # `ruff format src tests scripts` to f
 
 # Leak guards (set SHAREDAGENTS_SCRUB_DENYLIST to your private list, see below)
 python -m pytest -q tests/test_no_local_references.py
-python scripts/check_forbidden_patterns.py src docs scripts
+python scripts/check_forbidden_patterns.py src docs scripts examples
 
 # Documentation
 pip install -e '.[docs]' && mkdocs build --strict
@@ -90,11 +96,25 @@ Useful variations: `python -m pytest -q tests/test_<area>.py` for one file,
 
 ## Pull requests
 
+- Work on a feature branch, using a fork if you do not have repository access.
+  Open a draft early when feedback would help; avoid mixing unrelated cleanup
+  into a behavior change.
 - One focused change per PR; describe the *why*, not just the *what*.
 - Add or update tests for behavior changes — a change you can't prove is
   unverified.
 - Keep `src/requirements.txt` and `pyproject.toml` dependencies in sync.
 - Note user-facing changes under `## [Unreleased]` in `CHANGELOG.md`.
+- Redact logs and screenshots before posting. Do not attach environment files,
+  runtime homes, account databases, QR codes, or raw conversation ledgers.
+- Include AI-assisted changes only when you have reviewed and can explain the
+  resulting diff and its verification. The same standards apply to every
+  contribution; generated output is not review evidence.
+- Contributions are made under the project's MIT license; preserve upstream
+  notices and identify any third-party code or assets being introduced.
+
+Maintainer responsibilities and larger design decisions follow
+[GOVERNANCE.md](GOVERNANCE.md). Reviewers may ask for a smaller diff, additional
+evidence, or a separate design proposal before merging.
 
 ## Versioning
 

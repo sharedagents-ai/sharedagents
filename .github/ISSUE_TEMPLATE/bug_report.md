@@ -23,7 +23,7 @@ assignees: ""
 
 ## Environment
 
-- sharedagents version (`sharedagents --version` or commit):
+- SharedAgents version (`python -c "from importlib.metadata import version; print(version('sharedagents'))"` or commit):
 - Install method (pip / source checkout):
 - OS / Python version:
 - Extras installed (`[web]`, `[whatsapp]`, ...):

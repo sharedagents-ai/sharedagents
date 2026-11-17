@@ -23,3 +23,5 @@ python -m pytest -q tests/test_<area>.py
       `python -m pytest -q tests/test_no_local_references.py` passes
 - [ ] Changelog entry under `## [Unreleased]` for user-facing changes
 - [ ] Docs updated where behavior changed
+- [ ] Logs, screenshots, fixtures, and generated assets contain no private data
+- [ ] New dependencies and third-party assets include license/provenance details
