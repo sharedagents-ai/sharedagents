@@ -1254,6 +1254,8 @@ body {
   border-radius: 3px;
 }
 
+.message[hidden] { display: none; }
+
 .message {
   padding: 0 24px;
   margin-bottom: 8px;

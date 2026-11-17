@@ -3237,28 +3237,11 @@ function bindModelSheetControls() {
   });
 }
 
-// ── Compaction-stats card, attached to the compaction turn in the chat ──
-//
-// The compaction turn's committed assistant message carries the summary text
-// ("compacted: …" — the engine writes it as the direct-dispatch body), so the
-// turn already reads as a chat turn. This card APPENDS the structured stats
-// (count · tokens before→after · removed · chars · messages trimmed · when +
-// the full summary text) into that turn's own bubble — the replacement for the
-// old input-area chip + popover, which are gone.
-//
-//   * collapsed by default: one line ("🗜 Compaction #2 · 208.4K → 117.1K ·
-//     −91.2K tokens"); the toggle button expands the detail rows below it,
-//   * NO native dialogs — a plain in-bubble disclosure, toggled by click and
-//     collapsed again by Escape (delegated from the stable messages container,
-//     same convention as .msg-copy),
-//   * idempotent mount: safe on every render path (live turn end, virtual-
-//     scroller rebuilds, history re-hydration). A message is a compaction turn
-//     iff its committed body starts with "compacted" (the direct-dispatch
-//     summary; matches the engine's _format_compaction_summary output).
-//     ``snapshot`` is the per-turn {stats, summary, count} captured at turn
-//     end; when absent (history reload) the header values are used — the
-//     header keeps the latest compaction, which for the most recent turn IS
-//     that turn's snapshot.
+// ── Compaction statistics in the view-only compaction child ──
+// Parent control turns stay out of the chat. These helpers can show the child's
+// structured stats beside its summary, collapsed by default. A per-turn
+// {stats, summary, count} snapshot survives virtual-scroller rebuilds; the child
+// session header is the fallback when one is available after a reload.
 
 // Compact token-count formatting ("16.5K", "1.3M"). Pure — no DOM, unit-tested.
 function fmtCompactTokens(n) {
@@ -3381,7 +3364,7 @@ function mountCompactionStatsCard(el, snapshot) {
   }
   bindCompactionCardDelegation();
   const raw = (el.dataset && el.dataset.raw) || "";
-  const isCompactionTurn = typeof raw === "string" &&
+  const isCompactionTurn = state.currentAgent === "compaction" && typeof raw === "string" &&
     raw.trim().startsWith("compacted");
   const existing = el.querySelector(":scope > .message-compaction-stats");
   if (!isCompactionTurn) {
