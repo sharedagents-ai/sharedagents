@@ -192,7 +192,7 @@ const VirtualScroller = {
       // not collapse rows the operator had opened.
       activityDisclosureState: null,
       el: el || null,
-      height: 0,
+      height: null, // Unmeasured; a measured hidden message has height zero.
     });
     return idx;
   },
@@ -1081,7 +1081,7 @@ const VirtualScroller = {
             timestamp: m.timestamp ? String(m.timestamp) : "",
             activityDisclosureState: null,
             el: null,
-            height: 0,
+            height: null,
           });
           return;
         }
@@ -1110,7 +1110,7 @@ const VirtualScroller = {
             : "",
           activityDisclosureState: null,
           el: null,
-          height: 0,
+          height: null,
         });
       });
     });

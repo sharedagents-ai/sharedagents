@@ -198,6 +198,33 @@ def compaction_page():
 
 
 @pytest.mark.browser
+@pytest.mark.parametrize("origin", ["added", "older", "memory_flush"])
+def test_unmeasured_messages_reserve_space_but_hidden_messages_do_not(compaction_page, origin):
+    result = compaction_page.evaluate(
+        """origin => {
+          if (origin === 'added') {
+            VirtualScroller.add('assistant','A normal answer.',null,null,null,'general');
+          } else {
+            state.scroll.renderedStart=1;
+            const older=origin === 'memory_flush'
+              ? [{role:'user',content:'[MEMORY FLUSH] Save durable state.'},
+                 {role:'assistant',content:'Saved.'}]
+              : [{role:'assistant',content:'An older answer.'}];
+            VirtualScroller.prependOlder(older);
+          }
+          const unmeasured=VirtualScroller._estimateHeight(0,state.msgCache.length);
+          const hidden=document.createElement('div');
+          hidden.hidden=true;
+          VirtualScroller.measure(0,hidden);
+          return {unmeasured,hidden:VirtualScroller._estimateHeight(0,1)};
+        }""",
+        origin,
+    )
+    assert result["unmeasured"] > 0
+    assert result["hidden"] == 0
+
+
+@pytest.mark.browser
 @pytest.mark.parametrize("width", [390, 960])
 def test_chat_stays_clean_after_virtual_rebuild_and_footer_opens_child(compaction_page, width):
     page = compaction_page
