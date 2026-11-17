@@ -33,7 +33,54 @@ as application changes. Deploy only a reviewed build, and keep hosting credentia
 and account identifiers in the hosting environment. DNS and certificate validation
 must be complete before announcing a custom domain as live.
 
-## Cloudflare Pages Direct Upload
+## Operator-managed isolated Docker publication
+
+`deploy/website/compose.yml` runs only a non-root static nginx server and a
+dedicated outbound tunnel. It must never mount application data, configuration,
+source, or the Docker socket. The website has only an internal network; only the
+connector joins egress. Neither service publishes host ports. Images are pinned
+by digest; roots and mounts are read-only, with capability, resource and log limits.
+The tunnel credential is a restricted file outside the web root, readable by
+container group 65532, never a literal argument or environment variable.
+
+After independent hosting review, install the compose/nginx files in a private
+operator directory alongside `current`, selecting an immutable audited release.
+Verify the archive and per-file manifest before extraction. Operator-managed
+artifact publication is separate from PR merge checks: publish only the approved
+immutable bytes; never waive a merge check or install a CI runner for publication.
+Retain the previous release and DNS inventory. Switching `current` requires
+recreating only the website container to retarget Docker's bind mount.
+
+Unlike the reference site's dual-host serving, nginx deliberately redirects only
+`www.sharedagents.ai` to the HTTPS apex, preserving path and query. The apex does
+not redirect based on the origin HTTP scheme, avoiding tunnel loops. Directory
+redirects are relative. Unknown hosts return 404; root and documentation misses
+deliberately use the root 404 page. The healthcheck supplies the apex Host header.
+The installer is served unchanged as shell content, never executed.
+
+Run the structural and real nginx tests, using a dedicated private stack:
+
+```bash
+python -m pytest -q tests/test_website_container.py
+WEBSITE_TEST_CONTAINER=sharedagents-public-website-1 python -m pytest -q tests/test_website_container.py
+```
+
+`WEBSITE_DOCKER_COMMAND` optionally selects an operator-controlled Docker command
+(for example an SSH Docker invocation); no deployment address is shipped.
+Inspect the running container's networks, limits, health and read-only mounts as
+well as testing HTTP. Connector metrics bind only to its own loopback port 20889;
+do not publish that port. Inspect connector logs/API connection readiness.
+
+Stage the dedicated zone/tunnel and reconcile the complete registrar inventory
+before activation. Exclude provider-owned apex SOA/NS, preserve child delegations,
+all mail/service records and TTLs, and review the provider-specific parking record
+and `_domainconnect` explicitly. No literal `Parked` value can be imported as an IP.
+Keep mail/service records DNS-only. Account custody/MFA/recovery, fresh DNS drift
+comparison and independent implementation review gate production delegation.
+Public HTTP/TLS/content/mail verification and DNSSEC-safe rollback are separate
+from container health. Do not route public traffic during private staging.
+
+## Cloudflare Pages Direct Upload (alternative)
 
 The existing static build can be uploaded directly without a Git provider
 integration. Use the intended account and the Free plan; keep account identifiers
