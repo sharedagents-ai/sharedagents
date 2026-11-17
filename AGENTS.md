@@ -21,6 +21,14 @@ values live only in the user's sharedagents home (`~/.sharedagents/`: `config.js
 `agents/<name>/config.json`, `agents/<name>/AGENTS.md`, `.env`), never in this
 repository.
 
+Private operational work is excluded even when it contains no credentials.
+Keep hosting configuration, account and DNS migration runbooks, and local review
+notes outside public branches. Review publication scope separately from secret
+scanning when importing work from a private branch.
+
+Before publishing, verify that `git ls-files --cached --ignored --exclude-standard`
+returns no files. Git ignore rules do not automatically untrack existing files.
+
 Tests and examples use placeholders: `example.com`, documentation IPs
 (`192.0.2.x`, `203.0.113.x`), `user@example.com`, and fake tokens that cannot
 be mistaken for real ones.
