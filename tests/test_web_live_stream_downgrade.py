@@ -27,7 +27,7 @@ def _run_node(js_code: str) -> dict:
 
 
 def test_turn_ended_retrying_does_not_relight_via_microtask():
-    src = (STATIC / "streaming.js").read_text()
+    src = (STATIC / "streaming.js").read_text(encoding="utf-8")
     assert "queueMicrotask(() => _keepRetryingUI" not in src
     assert "const keepRetrying" in src
     assert "finishTurnChrome" in src

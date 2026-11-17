@@ -57,6 +57,7 @@ def env(tmp_path, monkeypatch):
     # No gateway: every proxied read fails soft.
     monkeypatch.setattr(sessions_routes, "gateway_request", lambda *a, **k: None)
     monkeypatch.setattr(server, "gateway_request", lambda *a, **k: None)
+    monkeypatch.setattr(ui_stream, "gateway_request", lambda *a, **k: None)
     # The container has no agent configs; name the external engines.
     monkeypatch.setattr(access, "agent_is_external", lambda name: name in {"codex", "claude"})
     server.auth_store.create_user(ADMIN, "pw", role=ROLE_ADMIN)

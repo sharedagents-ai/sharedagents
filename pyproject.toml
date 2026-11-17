@@ -27,7 +27,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sharedagents"
-version = "1.0.1"
+version = "1.0.2"
 description = "Local AI agent platform with full under-the-hood visibility — multi-agent orchestrator, web UI, channels, pluggable engines."
 readme = "README.md"
 requires-python = ">=3.10"
