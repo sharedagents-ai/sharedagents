@@ -33,15 +33,16 @@ claims require measured outcomes against a comparable baseline.
 
 | Capability | Current delivery | Remaining acceptance |
 | --- | --- | --- |
-| Native research accumulation | Source capture, structured proposals, publication gate, indexed retrieval and receipts | Broader research-quality evaluation |
-| Concurrent sources | Transactional writers and awaited native worker coordinator | Measure real model concurrency and cost at scale |
-| Evidence and time | Provisional meaning, quoted claims, conflict retention, explicit corrections, event ordering | Cardinality and validity intervals; reviewed ambiguous identity, retraction and multi-hop contradiction suites |
-| Semantic compilation | Application/storage boundary | Ten connectors, schema profiling, query history, PII, table families, inferred joins and executable measures |
-| Retrieval and answering | Native research reasoning and lexical evidence access | Semantic/name hybrid retrieval, answerability grading, validated SQL, conversational analysis and charts |
-| Governance | Immutable proposals and published receipts | Certification, ownership, fine-grained ontology permissions, rules, tags, zones and management UI |
-| Interoperability | Existing native agent interfaces | Complete Python/CLI/REST/MCP contracts and native/Ossie round trips |
-| Predictions | Existing domain integration remains separate | Optional Kumo/PQL parity and evaluated predictions |
-| Operations | Lazy SDK dependency, private stores and atomic operations | Connector deployment matrix, maintenance/recovery UI and full parity suite |
+| Native research accumulation | Native publication gate, immutable captures, definitions, claims and receipts | Broader reviewed extraction/answer quality, including role/entailment errors |
+| Concurrent sources | Awaited native coordinator; transactional eight-writer storage replay | Sustained fresh-model extraction at corpus scale and measured inference concurrency |
+| Evidence and time | Bounded incremental states, historical evidence paging, object relations, verified publisher corrections, separate UTC timelines | General validity intervals, ambiguous identity review, retractions and multi-hop contradiction judgments |
+| Catalog and profiling | Configured SQLAlchemy sources; tables/views, keys, sample profiles and PII hints | HeavyDB adapter, live cloud/vendor matrix, comprehensive PII classification, direct vendor query-history readers |
+| Semantic compilation | Native term/column refinement with coverage status; executable queries; schema families, validated inferred keys, junction discovery and exported history examples | Learned family union/reconciliation, evaluated junction suggestions and full-scale semantic quality |
+| Retrieval and answering | SDK FTS5 + exact cosine kNN fusion; configured real embeddings; retrieved-schema SQL validation; archived results and chart/CSV APIs | ANN at large vector scale, nuanced answerability evaluation, chart/chat workbench and full benchmark comparison |
+| Governance | Workspace memberships/roles, CAS edits, immutable review history, human certification, reviewed tagging rules and authenticated explorer | Per-object RBAC, full zones/tags/rule authoring interface and maintenance/re-embedding workflow |
+| Interoperability | Python/CLI/native tools, authenticated HTTP and stdio MCP; native/NVIDIA import/export and official Ossie conversion | Complete vendor-field round trips, protocol compatibility matrix and expanded MCP acceptance |
+| Predictions | Prediction definitions may be represented as drafts | Executable Kumo/PQL integration and evaluated predictions; a stored record is not this feature |
+| Operations | Explicit SDK interpreter, private stores, atomic postings/vectors, stale-vector invalidation and recovery tests | Release SDK dependency first, connector deployment matrix, maintenance UI and protected GitHub delivery |
 
 ## Evaluation requirements
 
@@ -63,3 +64,30 @@ claims require measured outcomes against a comparable baseline.
 Full NVIDIA parity is unfinished until the remaining entries have implemented
 behavior and passing acceptance evidence. New capabilities must remain in
 SharedAgents rather than adding semantic/model logic to SharedData.
+
+## Acceptance evidence from the implementation
+
+The acceptance commands and private run artifacts are recorded by the operator,
+not bundled with deployment-specific identities, model names, timings or source
+corpora in the public package. The completed checks include:
+
+- A native research run over the public Chinook SQLite dataset compiled all 11
+  tables and refined all 64 column mappings. Coverage became `draft_ready`; no
+  semantic correctness certification was claimed.
+- A separate native question produced the correct top billing-country revenues,
+  matching direct SQLite results. Executed query and catalog revisions were pinned
+  in the published receipt. This is one reviewed question, not a full benchmark.
+- Replaying 4,032 frozen classified-source extractions chronologically and with
+  eight concurrent shuffled workers produced identical final claim-state, entity-identity and semantic-projection
+  digests. Audit revision histories still reflect their actual arrival order.
+  Publication timelines stayed ordered and five disagreements remained contested.
+  It made zero new model calls and does not represent extraction of the remaining
+  eligible corpus. Exact quotes alone cannot prove semantic entailment.
+- Unit/integration tests cover rollback, eight writers, stale vectors, namespace
+  separation, failed publications, review permissions, inferred-key validation,
+  source-schema changes, guarded SQL and native/Ossie interchange.
+
+The currently configured SharedAgents remote is GitHub. Release/delivery must use
+its protected PR workflow and scan the complete outgoing Git history and package
+artifacts. An unavailable or rejected forge credential blocks publishing; it is
+not a reason to publish to an older remote or claim deployment succeeded.

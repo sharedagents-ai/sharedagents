@@ -1,135 +1,195 @@
 # Native research ontology
 
-The native `research` agent automatically accumulates fetched evidence, entities,
-concepts and claims in a SharedData-backed ontology. Each completed investigation
-publishes an immutable answer receipt. Later investigations search that accumulated
-knowledge and extend it.
+The native `research` agent accumulates evidence, entities, concepts, claims and
+business definitions in a SharedData-backed ontology. A successful investigation
+publishes a receipt that pins its sources, fact states, semantic revisions and
+executed queries. Later research retrieves and extends that knowledge.
 
-From an updated checkout, install the optional data-layer dependency in the
-interpreter running the tools:
+SharedAgents owns all extraction, meaning, reconciliation and governance logic.
+SharedData supplies private transactional containers, text postings and supplied
+vector storage. Neither the SDK nor the data worker calls a model.
+
+## Installation and setup
+
+The semantic model requires SharedData 6.103.0 with its `search` extra. **That SDK
+version must be released before this feature's packaged installation/CI can be
+delivered.** During coordinated development, install the SDK feature checkout
+into a dedicated Python 3.11/3.12 environment, then install this checkout's
+ontology dependencies. The lean SharedAgents core keeps its normal Python range.
+
+After the SDK release:
 
 ```bash
-pip install -e '.[ontology]'
+pip install -e '.[ontology,web]'
+python -m sharedagents_research setup --agent-home /path/to/runtime/agents/research
 ```
 
-The current SharedData distribution supports Python 3.11 and 3.12. Other
-SharedAgents features retain their normal Python requirements. Missing SharedData
-is an explicit tool error; there is no alternate storage fallback.
+Setup installs the native research prompt/tools, preserves model routes and other
+unrelated settings, and checks storage before replacing configuration. An operator
+may select `--backend-python /path/to/sdk/bin/python`. This launches one awaited
+operation in the SDK interpreter, using the same application code, without
+passing model credentials or starting an unattended service.
 
-An operator can instead select an existing SDK interpreter with
-`setup --backend-python /path/to/sdk/bin/python`. Only awaited data operations run
-there, using the same SharedAgents ontology code and SharedData container. Model
-reasoning stays in the native research runtime. The worker receives no provider
-credentials and creates no service or background job.
+The runtime `ontology` configuration accepts `root`, optional `python`, configured
+`connections`, `workspaces` and `default_workspaces`. A connection contains an
+operator-selected `url_env`, whose environment variable holds its database URL.
+Models see connection names, never connection strings or credentials.
 
-## Workflow
+```json
+{
+  "ontology": {
+    "connections": {
+      "sales": {"url_env": "RESEARCH_SALES_URL", "scopes": ["workspace:team"]}
+    },
+    "workspaces": {"team": {"members": {"user@example.com": "editor"}}},
+    "default_workspaces": {"user@example.com": "team"}
+  }
+}
+```
+
+Remote sources require `read_only_credentials: true` and an actually read-only
+account. Optional extras install individual vendor drivers. SQLite and DuckDB
+also enforce read-only opens; PostgreSQL uses a read-only transaction/deadline.
+Other vendors rely on the configured database role. The native SQL validator is
+an additional restriction, not a replacement for that role.
+
+## Native workflow
 
 ```mermaid
 flowchart LR
     Q[Research question] --> R[Native research agent]
-    R --> F[Fetch and automatically capture sources]
-    F --> E[Agent extracts entities, concepts and claims]
-    E --> V[Validate evidence and update affected facts]
-    V --> P[Publish cited answer and immutable receipt]
+    R --> F[Capture sources or inspect configured catalog]
+    F --> E[Propose grounded claims and semantic definitions]
+    E --> V[Validate evidence, revisions and retrieved schema]
+    V --> P[Publish cited answer and pinned receipt]
     P --> Q
 ```
 
-Three native tools implement this workflow:
-
-| Tool | Behavior |
+| Native capability | Actions |
 | --- | --- |
-| `ontology_search` | Readiness, indexed lexical search, objects, definitions/facts, event timeline and publication history |
-| `ontology_source` | Fetch a source using the existing web-fetch implementation and persist exactly its returned evidence |
-| `ontology_update` | Begin the current turn's research run, submit grounded structured extractions and publish its answer |
+| `ontology_search` | Hybrid retrieval, objects, table contexts, coverage, paths, history, time, evidence paging and compilation status |
+| `ontology_source` | Existing web fetch plus immutable evidence capture and optional embeddings |
+| `ontology_update` | Begin, extract, compile, define/batch, import, guarded query and finish |
 
-The native runtime requires a successful `finish` operation before reporting a
-research turn as successful. If publication fails, it gives the agent two bounded
-continuations, then reports an incomplete/error outcome. A model's prose assertion
-that it saved knowledge does not satisfy the gate. Budget and round-limit exits
-also enforce this condition; cancellation remains cancellation.
+Research uses its configured native model and embedding resolver. There is no
+second LLM agent loop in the ontology package. Every captured source must be
+extracted before publication; irrelevant sources may have explicitly empty
+extractions. Exact quoted spans establish attribution, not real-world truth.
 
-A captured source must be processed before the answer can be published. Empty
-extractions can represent irrelevant content; the research agent is responsible
-for semantic completeness. Grounding checks require source quotes and save the
-actual contiguous source span, accepting line wrapping but rejecting paraphrases.
-These checks establish attribution, not independently verified truth.
+A research turn cannot report success without a successful `finish`. Publication
+failure gets two bounded continuations, then an incomplete/error result. A prose
+claim that knowledge was saved is insufficient. Budget exits enforce the same
+condition, and cancellation remains cancellation.
 
-## Storage, identity and time
+## Structured data and semantic compilation
 
-SharedAgents owns ontology policies. SharedData owns the generic private SQLite
-container, indexed access and operation-scoped transactions. Research never calls
-a model inside SharedData. No PostgreSQL service is required by this research
-path.
+`compile` snapshots actual configured tables/views, columns, declared keys and
+bounded sample profiles. Suspected sensitive columns have their sample values
+redacted. These are incomplete PII hints, not a comprehensive PII classifier.
+The agent then refines table terms and creates attributed column meanings using
+paginated `table` contexts and atomic `define_many` batches.
 
-Authenticated restricted users receive namespaces derived from their pinned
-access identity. The local operator uses the operator namespace. Models cannot
-supply another user's scope or a destination filesystem path. The three native
-ontology capabilities access only this application-owned state; host file and
-shell tools keep their existing confinement. API callers coordinating research
-must pass the authenticated `AccessStamp` to `research_many`.
+`compilation_status` reports missing descriptions/mappings. `draft_ready` means
+mechanical coverage, **not semantic correctness or expert certification**.
+Human review is separate. Recompilation preserves business terms and annotations;
+changed physical snapshots lose their prior certification.
 
-Entities and concepts have stable provisional identities. Source-backed definition
-proposals remain separate from those identities; a newer description cannot
-replace an older definition silently. Claims carry the originating source,
-model route, prompt version, unit, period and basis. Different values for the same
-fact remain contested. A correction must reference an earlier same-publisher
-claim for the same dimensions. Exact syndicated copies do not count as independent
-content. These are explicit policies, not automatic real-world truth adjudication.
+`compile` with `analyze: true` additionally discovers matching schema families,
+junction-table candidates and likely foreign keys. Name similarity proposes an
+inferred join; full-domain uniqueness/orphan queries decide whether to enable
+it. Failures leave disabled drafts. Family similarity does not silently union
+tables. Source changes invalidate affected old join validation.
 
-Event timestamps determine the timeline. Equal event timestamps retain uncertain
-ordering. Unknown event time is not filled with ingestion time. Publication and
-capture times remain separate. Current fact updates use indexed affected-fact
-lookups; the system does not recompute every fact on each source arrival. Published
-answer receipts pin the fact states relevant to that investigation.
+An optional `query_history_env` points to an operator-selected JSON history
+export. Valid read queries become draft analysis examples. Importing one neither
+executes nor certifies it. Native research interprets its business meaning.
 
-The current reducer treats each property as single-valued within its unit, period
-and basis. Different values therefore remain contested unless an explicit valid
-correction supersedes them. Additive relationships and time-varying properties
-need richer cardinality and validity-interval policies. Event order alone does
-not establish that one statement corrects another. A heavily updated fact also
-retains growing evidence snapshots; large-corpus storage and latency remain to
-be measured before claiming production-scale efficiency.
+Retrieval pins accessible table context to the current run. SQL execution requires
+one read-only query, known tables/columns, approved analytical functions, and
+previously retrieved tables from the same configured connection. Successful
+queries archive SQL, actual bounded rows, truncation and catalog revisions.
+Native research defines metrics as semantic records and uses validated queries
+to execute them; metadata alone is never proof of an executed metric.
 
-## Run and inspect
+## Evidence, conflict and time
 
-The normal research chat uses these tools. A foreground application entry point
-is also available:
+Entities and concepts keep stable provisional identities and immutable,
+source/model-attributed definition proposals. Automatic definition previews use
+a deterministic proposal ordering; that preview does not adjudicate meaning.
+Explicit native/human refinements and certified definitions take precedence.
+Per-extraction cardinality cannot change an earlier claim based on arrival order. Scalar facts distinguish unit,
+period and basis. Multi-valued object relations distinguish their targets and
+modality, so two different valid targets are not automatically contradictions.
+Different active values for the same fact remain contested.
+
+An explicit correction requires changed content, a strictly later verified source
+time, and the same attributed publisher and fact. Corrections arriving before
+originals are held pending. Shared hosting sites do not collapse every account
+into one publisher. Model-proposed dates from arbitrary web pages remain
+unverified and cannot establish correction precedence. Exact syndicated copies
+count once as independent content.
+
+Event and publication timelines are separate, use UTC and preserve ties. Unknown
+event time is never invented from publication or ingestion time. State summaries
+have bounded examples and exact counts; `fact_evidence` pages all retained claims
+at either current or pinned historical revisions. Updating a popular fact does
+not copy an ever-growing evidence array into every new state.
+
+This policy preserves disagreements and accepts validated explicit corrections.
+It does not establish truth by majority, latest arrival or an unsupported model
+assertion. General validity intervals and reviewed semantic entailment remain
+separate evaluation work.
+
+## Authenticated exploration and interoperability
+
+The `/ontology` page uses existing authentication. Users can inspect/search
+objects, mappings and revisions, edit drafts, and certify or retire permitted
+records. Workspace roles are viewer, editor, reviewer and owner; agents do not
+receive the human certification capability. Revision checks reject stale edits.
+Edits invalidate old vectors atomically; lexical retrieval stays available.
+Committed embedding receipts skip unchanged revisions and retain failed work for
+retry. An unavailable embedding service reports explicit degraded indexing while
+keeping the committed domain record and lexical evidence searchable.
+Automatic re-embedding after a human edit is not yet a background maintenance
+feature; the native definition/import path embeds changed objects when configured.
+
+The authenticated `/api/ontology` exposes inspection, history, coverage, paths,
+native/NVIDIA/Ossie export, draft imports and governed writes. Stored query IDs
+can be rendered as portable Vega-Lite specifications (`action=chart`) or downloaded
+as formula-safe CSV (`action=csv`). These use archived results without rerunning
+SQL. A full interactive chart/chat analysis workbench remains separate work.
+
+`POST /api/ontology/research` submits the existing native research agent, with
+its usual agent grant and authenticated actor. Native research uses the actor's
+configured default workspace; the endpoint rejects a conflicting workspace.
+
+Run `python -m sharedagents_research.mcp` for authenticated stdio MCP access.
+Configure `SHAREDAGENTS_RESEARCH_API_URL` and a user API token in
+`SHAREDAGENTS_RESEARCH_API_TOKEN`. The MCP client uses the same HTTP authorization
+and waits for stored publication receipts. It does not expose a second public
+server or direct unscoped filesystem access.
+
+NVIDIA native-format export/import is implemented. Optional Ossie conversion
+uses the official Apache converter's public API, not a lookalike YAML format.
+Install that converter separately from
+[Apache Ossie converters](https://github.com/apache/ossie-converters/tree/main/nvidia).
+Imports remain drafts and imported joins stay disabled pending validation.
+Round trips of supported fields are not a claim of preserving every vendor field.
+
+## Foreground execution and boundaries
 
 ```bash
 python -m sharedagents_research research 'Compare the evidence for this topic'
-python -m sharedagents_research research 'Research the supplied sources' \
+python -m sharedagents_research research 'Research these sources' \
   --source https://example.com/one --source https://example.com/two --parallel 8
 python -m sharedagents_research inspect --root /path/to/ontology --query capacity
 ```
 
-Parallel source briefs run through native research sessions using the configured
-agent and model. The coordinator awaits every worker and propagates cancellation;
-workers have no delegation tools. The limit is configurable from 1 to 32.
+The coordinator awaits all native sessions, limits concurrency to 1..32 and awaits
+cancellation cleanup. It never delegates through agent tools. Stores are private
+by default and initialized empty; models cannot choose paths or user scopes.
+Legacy `KnowledgeClient`/`ResearchWorkflow` imports remain available independently.
 
-The default root is the runtime home's `ontology/` folder. An operator can supply
-`SHAREDAGENTS_ONTOLOGY_ROOT` at runtime. New stores start empty. Source deletion or
-import from another knowledge system is not part of initialization.
-
-Existing installations can explicitly install the new local research prompt and
-tool configuration after installing the updated package and its ontology extra:
-
-```bash
-python -m sharedagents_research setup --agent-home /path/to/runtime/agents/research
-```
-
-This replaces that agent's prompt and tool/skill lists, preserving unrelated
-settings such as configured model routes. It verifies the SDK can initialize the
-store before writing configuration. The native research profile does not expose
-shell or file-editing tools. Existing `KnowledgeClient` and `ResearchWorkflow`
-imports remain available for applications using a separately configured legacy
-knowledge MCP backend; new native research uses the ontology path above.
-
-## Capability boundaries
-
-This implementation supplies the native research accumulation loop. Lexical
-retrieval, provisional definitions, evidence-backed claims, conflict retention and
-historical answer receipts are implemented. Semantic vector retrieval, database
-schema compilation/connectors, executable SQL metrics, governance/editor UI,
-Ossie interchange, prediction integration and full NVIDIA API/MCP compatibility
-remain tracked in [the parity plan](../development/ontology-parity.md). Passing a
-small example does not establish full product parity or a throughput advantage.
+See [the capability ledger](../development/ontology-parity.md) for implementation
+and evaluation gaps. A working example, a cached-news storage replay, or a passing
+SQL question alone does not establish full NVIDIA product parity or superiority.

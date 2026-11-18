@@ -13,6 +13,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
+from .claims import ClaimPolicy
+from .semantic import SemanticModel
+
 
 def encoded(value):
     return json.dumps(value, sort_keys=True, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
@@ -27,6 +30,8 @@ def now():
 
 
 def timestamp(value):
+    if not isinstance(value, str) or not value.strip() or len(value) > 100:
+        raise ValueError("timestamps must be timezone-aware ISO strings")
     date = datetime.fromisoformat(value.replace("Z", "+00:00"))
     if date.tzinfo is None:
         raise ValueError("timestamps must include their timezone")
@@ -39,10 +44,32 @@ def tokens(text):
 
 
 def canonical_url(url):
+    if not isinstance(url, str) or not url.strip() or len(url) > 8192:
+        raise ValueError("source URL must be a nonempty string of at most 8192 characters")
     parts = urlsplit(url)
     if parts.scheme not in {"http", "https"} or not parts.hostname or parts.username or parts.password:
         raise ValueError("source must be an HTTP(S) URL without embedded credentials")
     return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), parts.path or "/", parts.query, ""))
+
+
+def canonical_publisher(url):
+    """Separate tenants on shared publication hosts; abstain for short URLs."""
+    parts = urlsplit(url)
+    host, path = parts.hostname, parts.path.strip("/").split("/")
+    if host in {"x.com", "www.x.com", "twitter.com", "www.twitter.com"}:
+        if (
+            len(path) >= 3
+            and path[1] == "status"
+            and re.fullmatch(r"[A-Za-z0-9_]{1,15}", path[0])
+            and path[0].casefold() != "i"
+        ):
+            return "x.com/" + path[0].casefold()
+        return None
+    if host in {"github.com", "raw.githubusercontent.com"}:
+        return "github.com/" + "/".join(path[:2]).casefold() if len(path) >= 2 else None
+    if host in {"t.co", "bit.ly", "tinyurl.com", "youtu.be", "www.youtube.com", "youtube.com", "doi.org"}:
+        return None
+    return host
 
 
 def grounded_quote(text, quote):
@@ -96,7 +123,7 @@ def external_identity(value, source_url):
     return value
 
 
-class Ontology:
+class Ontology(SemanticModel, ClaimPolicy):
     """Application semantics; the supplied container owns connections and commits."""
 
     def __init__(self, container, *, initialize=True):
@@ -110,6 +137,7 @@ class Ontology:
                 "CREATE INDEX IF NOT EXISTS ontology_terms_object ON ontology_terms(object_id)",
                 "CREATE TABLE IF NOT EXISTS ontology_runs (id TEXT PRIMARY KEY, actor TEXT NOT NULL, payload TEXT NOT NULL)",
                 "CREATE TABLE IF NOT EXISTS ontology_sources (run_id TEXT, source_id TEXT, extracted INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(run_id,source_id))",
+                "CREATE TABLE IF NOT EXISTS ontology_source_observations (run_id TEXT,source_id TEXT,observed_at TEXT NOT NULL,PRIMARY KEY(run_id,source_id))",
                 "CREATE TABLE IF NOT EXISTS ontology_claims (fact TEXT, claim_id TEXT PRIMARY KEY, source_id TEXT NOT NULL, event_at TEXT)",
                 "CREATE INDEX IF NOT EXISTS ontology_claim_fact ON ontology_claims(fact)",
                 "CREATE INDEX IF NOT EXISTS ontology_claim_source ON ontology_claims(source_id)",
@@ -119,9 +147,17 @@ class Ontology:
                 "CREATE TABLE IF NOT EXISTS ontology_edges (claim_id TEXT PRIMARY KEY, subject TEXT, predicate TEXT, fact TEXT)",
                 "CREATE INDEX IF NOT EXISTS ontology_edge_subject ON ontology_edges(subject)",
                 "CREATE INDEX IF NOT EXISTS ontology_edge_predicate ON ontology_edges(predicate)",
+                "CREATE TABLE IF NOT EXISTS ontology_relation_objects (claim_id TEXT PRIMARY KEY,object_id TEXT NOT NULL)",
+                "CREATE INDEX IF NOT EXISTS ontology_relation_object ON ontology_relation_objects(object_id)",
+                "CREATE INDEX IF NOT EXISTS ontology_object_kind ON ontology_objects(kind)",
                 "CREATE TABLE IF NOT EXISTS ontology_changes (sequence INTEGER PRIMARY KEY AUTOINCREMENT, revision TEXT UNIQUE NOT NULL, run_id TEXT NOT NULL, created_at TEXT NOT NULL)",
             ):
                 db.execute(sql)
+            self._semantic_setup(db)
+            self._claims_setup(db)
+            db.execute(
+                "CREATE INDEX IF NOT EXISTS ontology_run_session ON ontology_runs(json_extract(payload,'$.session_id'))"
+            )
 
     @staticmethod
     def _get(db, key):
@@ -182,12 +218,35 @@ class Ontology:
         with self.container.connection() as db:
             return self._run(db, run_id, actor)
 
-    def capture(self, run_id, actor, *, url, text, title="", published_at=None, truncated=False):
+    def capture(
+        self,
+        run_id,
+        actor,
+        *,
+        url,
+        text,
+        title="",
+        published_at=None,
+        truncated=False,
+        publisher=None,
+        published_at_verified=True,
+        provenance=None,
+    ):
         url = canonical_url(url)
         if not isinstance(text, str) or not text.strip() or len(text) > 1_000_000:
             raise ValueError("source text must contain 1..1000000 characters")
         published_at = timestamp(published_at) if published_at else None
-        key = identity("source", url, text, published_at)
+        publisher = publisher if publisher is not None else canonical_publisher(url)
+        if publisher is not None and (not isinstance(publisher, str) or not publisher or len(publisher) > 512):
+            raise ValueError("publisher must be an attributed identifier or unknown")
+        if not isinstance(published_at_verified, bool) or provenance is not None and not isinstance(provenance, dict):
+            raise ValueError("source verification and provenance fields are malformed")
+        context = {"publisher": publisher, "published_at_verified": published_at_verified, "provenance": provenance}
+        key = (
+            identity("source", url, text, published_at, context)
+            if provenance or publisher != urlsplit(url).hostname or not published_at_verified
+            else identity("source", url, text, published_at)
+        )
         with self.container.connection(write=True) as db:
             self._run(db, run_id, actor)
             source = self._get(db, key)
@@ -198,14 +257,17 @@ class Ontology:
                     "url": url,
                     "text": text,
                     "title": title,
-                    "publisher": urlsplit(url).hostname,
+                    "publisher": publisher,
                     "published_at": published_at,
+                    "published_at_verified": published_at_verified,
+                    "provenance": provenance,
                     "captured_at": now(),
                     "truncated": bool(truncated),
                     "content_hash": identity(text),
                 }
                 self._put(db, key, "source", source, index=title + " " + text)
             db.execute("INSERT OR IGNORE INTO ontology_sources(run_id,source_id) VALUES (?,?)", (run_id, key))
+            db.execute("INSERT OR IGNORE INTO ontology_source_observations VALUES (?,?,?)", (run_id, key, now()))
             return source
 
     def extract(self, run_id, actor, source_id, *, entities, concepts, claims):
@@ -219,6 +281,7 @@ class Ontology:
             or sum(map(len, (entities, concepts, claims))) > 300
         ):
             raise ValueError("extraction needs entity/concept/claim lists totalling at most 300 items")
+        semantic_index = self._model_index()
         with self.container.connection(write=True) as db:
             run = self._run(db, run_id, actor)
             if not db.execute(
@@ -226,8 +289,9 @@ class Ontology:
             ).fetchone():
                 raise ValueError("source must have been captured in this research run")
             source = self._get(db, source_id)
-            local = {}
+            local, cardinalities = {}, {}
             objects = []
+            semantic_ids = []
             for kind, items in (("entity", entities), ("concept", concepts)):
                 for item in items:
                     label = str(item.get("name", "")).strip()
@@ -248,7 +312,7 @@ class Ontology:
                     base = {
                         "id": key,
                         "kind": kind,
-                        "name": external or label,
+                        "name": external or label.casefold(),
                         "type": kind if external else str(item.get("type", kind)),
                         "external_id": external,
                         "identity_status": "provisional",
@@ -271,7 +335,11 @@ class Ontology:
                         "model": run["model"],
                         "prompt_version": run["prompt_version"],
                         "status": "proposed",
+                        "cardinality": item.get("cardinality", "many" if item.get("type") == "relation" else "one"),
                     }
+                    if proposal["cardinality"] not in {"one", "many"}:
+                        raise ValueError("concept cardinality must be one or many")
+                    cardinalities[alias] = proposal["cardinality"]
                     definition_id = identity("definition", proposal)
                     self._put(
                         db,
@@ -281,6 +349,36 @@ class Ontology:
                         index=label + " " + proposal["description"] + " " + " ".join(proposal["aliases"]),
                     )
                     db.execute("INSERT OR IGNORE INTO ontology_definitions VALUES (?,?)", (key, definition_id))
+                    term_key = identity("research-term", key)
+                    previous_term = self._model_get(db, term_key)
+                    # A stable preview is not a semantic adjudication. Retain
+                    # every definition separately; do not let random arrival
+                    # choose the default preview or overwrite curated meaning.
+                    if previous_term is None or (
+                        previous_term["origin"] == "research"
+                        and previous_term["certification"]["status"] != "certified"
+                        and definition_id < previous_term["data"].get("definition", definition_id)
+                    ):
+                        self._model_put(
+                            db,
+                            semantic_index,
+                            "term",
+                            {
+                                "name": label,
+                                "description": proposal["description"],
+                                "aliases": proposal["aliases"],
+                                "research_object": key,
+                                "tables": [],
+                                "definition": definition_id,
+                                "definition_selection": "deterministic_provisional_preview",
+                                "cardinality": proposal["cardinality"],
+                            },
+                            actor=actor,
+                            key=term_key,
+                            expected=previous_term["revision"] if previous_term else None,
+                            origin="research",
+                        )
+                    semantic_ids.append(term_key)
                     objects.append(key)
             affected, accepted = set(), []
             for item in claims:
@@ -288,20 +386,36 @@ class Ontology:
                 if (
                     not subject
                     or not predicate
-                    or self._get(db, subject)["kind"] != "entity"
+                    or self._get(db, subject)["kind"] not in {"entity", "concept"}
                     or self._get(db, predicate)["kind"] != "concept"
                 ):
-                    raise ValueError("claim subject/predicate must bind extracted entity/concept keys")
+                    raise ValueError("claim subject/predicate must bind extracted node/concept keys")
                 quote = grounded_quote(source["text"], item.get("quote", ""))
-                if "value" not in item:
+                if "value" not in item and "object" not in item:
                     raise ValueError("claim value is required")
+                if "value" in item and "object" in item:
+                    raise ValueError("claim must supply a scalar value or a node object, not both")
                 event_at = timestamp(item["event_at"]) if item.get("event_at") else None
                 context = {k: item.get(k) for k in ("unit", "period", "basis")}
+                target = None
+                value = item.get("value")
+                if "object" in item:
+                    target = local.get(item["object"])
+                    if not target or not isinstance(item.get("polarity", True), bool):
+                        raise ValueError("relation object must bind an extracted node and polarity must be boolean")
+                    value = {"ref": target, "polarity": item.get("polarity", True)}
+                    context["cardinality"] = cardinalities[item["predicate"]]
+                    if context["cardinality"] == "many":
+                        context["relation_target"] = target
+                if item.get("modality"):
+                    if item["modality"] not in {"actual", "planned", "expected", "possible", "rumored"}:
+                        raise ValueError("unknown claim modality")
+                    context["modality"] = item["modality"]
                 fact = identity(subject, predicate, context)
                 claim = {
                     "subject": subject,
                     "predicate": predicate,
-                    "value": item["value"],
+                    "value": value,
                     "context": context,
                     "quote": quote,
                     "source": source_id,
@@ -311,10 +425,15 @@ class Ontology:
                     "model": run["model"],
                     "prompt_version": run["prompt_version"],
                 }
+                if target:
+                    claim["object"] = target
                 key = identity("claim", claim)
                 self._put(db, key, "claim", dict(claim, id=key), index=quote)
                 db.execute("INSERT OR IGNORE INTO ontology_claims VALUES (?,?,?,?)", (fact, key, source_id, event_at))
+                self._track_claim(db, fact, dict(claim, id=key))
                 db.execute("INSERT OR IGNORE INTO ontology_edges VALUES (?,?,?,?)", (key, subject, predicate, fact))
+                if target:
+                    db.execute("INSERT OR IGNORE INTO ontology_relation_objects VALUES (?,?)", (key, target))
                 affected.add(fact)
                 accepted.append(key)
             for fact in sorted(affected):
@@ -325,6 +444,7 @@ class Ontology:
                 "claims": accepted,
                 "model": run["model"],
                 "prompt_version": run["prompt_version"],
+                "semantic_ids": sorted(set(semantic_ids)),
             }
             key = identity("extraction", receipt)
             self._put(db, key, "extraction", receipt)
@@ -332,52 +452,18 @@ class Ontology:
             return dict(receipt=key, **receipt, facts_updated=len(affected))
 
     def _reconcile(self, db, fact):
-        claims = [
-            self._get(db, r[0])
-            for r in db.execute("SELECT claim_id FROM ontology_claims WHERE fact=? ORDER BY claim_id", (fact,))
-        ]
-        by_id = {c["id"]: c for c in claims}
-        superseded, pending = set(), []
-        for claim in claims:
-            if not claim["corrects"]:
-                continue
-            old = by_id.get(claim["corrects"])
-            if old is None:
-                pending.append(claim["id"])
-                continue
-            first, second = self._get(db, old["source"]), self._get(db, claim["source"])
-            if (
-                not first["published_at"]
-                or not second["published_at"]
-                or second["publisher"] != first["publisher"]
-                or second["published_at"] <= first["published_at"]
-            ):
-                raise ValueError("correction requires an earlier same-publisher claim for the same fact")
-            old_content = first["content_hash"]
-            superseded.update(c["id"] for c in claims if self._get(db, c["source"])["content_hash"] == old_content)
-        active = [c for c in claims if c["id"] not in superseded and c["id"] not in pending]
-        alternatives = {}
-        for claim in active:
-            key = encoded(claim["value"])
-            alternative = alternatives.setdefault(key, {"value": claim["value"], "claims": [], "origins": set()})
-            alternative["claims"].append(claim["id"])
-            alternative["origins"].add(self._get(db, claim["source"])["content_hash"])
-        values = [
-            {"value": a["value"], "claims": a["claims"], "independent_contents": len(a["origins"])}
-            for _, a in sorted(alternatives.items())
-        ]
-        state = {
-            "fact": fact,
-            "status": "contested" if len(values) > 1 else "reported" if values else "pending",
-            "value": values[0]["value"] if len(values) == 1 else None,
-            "alternatives": values,
-            "superseded": sorted(superseded),
-            "pending": sorted(pending),
-            "evidence": sorted(by_id),
-            "policy": "preserve-disagreement-v1",
-        }
+        state = self._claim_snapshot(db, fact)
         revision = identity("state", state)
         self._put(db, revision, "state", state)
+        db.execute(
+            "INSERT OR IGNORE INTO ontology_state_evidence VALUES (?,?,?,?)",
+            (
+                revision,
+                fact,
+                db.execute("SELECT COALESCE(MAX(sequence),0) FROM ontology_claim_acceptance").fetchone()[0],
+                db.execute("SELECT COALESCE(MAX(sequence),0) FROM ontology_claim_status_log").fetchone()[0],
+            ),
+        )
         db.execute(
             "INSERT INTO ontology_states VALUES (?,?) ON CONFLICT(fact) DO UPDATE SET revision=excluded.revision",
             (fact, revision),
@@ -407,12 +493,26 @@ class Ontology:
             if any(not r[1] for r in rows):
                 raise ValueError("all captured sources need entity/concept extraction before completion")
             referenced_sources = {r[0] for r in rows}
+            referenced_queries = []
+            semantic_citations = {}
             if len(citations) > 100 or not all(isinstance(c, str) for c in citations):
                 raise ValueError("citations must contain at most 100 stored object IDs")
             for key in citations:
                 value = db.execute("SELECT kind FROM ontology_objects WHERE id=?", (key,)).fetchone()
-                if not value or value[0] not in {"source", "claim"}:
-                    raise ValueError("citations must reference stored sources or grounded claims")
+                if value is None:
+                    semantic = self._model_get(db, key)
+                    if semantic:
+                        semantic_citations[key] = semantic["revision"]
+                        continue
+                elif value[0].startswith("semantic."):
+                    semantic = self._get(db, key)
+                    semantic_citations[semantic["id"]] = key
+                    continue
+                if not value or value[0] not in {"source", "claim", "query"}:
+                    raise ValueError("citations must reference stored sources, grounded claims or executed queries")
+                if value[0] == "query":
+                    referenced_queries.append(key)
+                    continue
                 referenced_sources.add(key if value[0] == "source" else self._get(db, key)["source"])
             if rows and not citations:
                 raise ValueError("a research answer must cite its stored evidence")
@@ -440,6 +540,13 @@ class Ontology:
                 "limitations": limitations,
                 "source_ids": sorted(referenced_sources),
                 "captured_source_ids": sorted(r[0] for r in rows),
+                "query_ids": sorted(referenced_queries),
+                "semantic_citations": semantic_citations,
+                "observed_at": dict(
+                    db.execute(
+                        "SELECT source_id,observed_at FROM ontology_source_observations WHERE run_id=?", (run_id,)
+                    )
+                ),
                 "states": states,
             }
             revision = identity("research", receipt)
@@ -482,6 +589,8 @@ class Ontology:
     def get(self, key, *, offset=0, text_limit=None):
         with self.container.connection() as db:
             value = self._get(db, key)
+            if value is None:
+                value = self._model_get(db, key)
             if value is not None and text_limit is not None:
                 offset = max(0, int(offset))
                 text_limit = max(1, min(int(text_limit), 16000))
@@ -507,9 +616,8 @@ class Ontology:
                 )
             ]
             rows = db.execute(
-                "SELECT DISTINCT s.revision FROM ontology_edges e JOIN ontology_states s ON s.fact=e.fact "
-                "WHERE e.subject=? OR e.predicate=? ORDER BY s.revision LIMIT ?",
-                (key, key, limit),
+                "SELECT revision FROM ontology_states WHERE fact IN (SELECT fact FROM ontology_edges WHERE subject=? UNION SELECT fact FROM ontology_edges WHERE predicate=? UNION SELECT e.fact FROM ontology_relation_objects r JOIN ontology_edges e ON e.claim_id=r.claim_id WHERE r.object_id=?) ORDER BY revision LIMIT ?",
+                (key, key, key, limit),
             )
             return {
                 "object": self._get(db, key),
@@ -529,17 +637,29 @@ class Ontology:
                 "facts": db.execute("SELECT COUNT(*) FROM ontology_states").fetchone()[0],
             }
 
-    def timeline(self, *, limit=100):
+    def timeline(self, *, limit=100, basis="event"):
+        if basis not in {"event", "publication"}:
+            raise ValueError("timeline basis must be event or publication")
         with self.container.connection() as db:
+            table, column = (
+                ("ontology_claims", "event_at") if basis == "event" else ("ontology_claim_data", "published_at")
+            )
             rows = db.execute(
-                "SELECT claim_id,event_at FROM ontology_claims WHERE event_at IS NOT NULL ORDER BY event_at,claim_id LIMIT ?",
+                f"SELECT claim_id,{column} FROM {table} WHERE {column} IS NOT NULL ORDER BY {column},claim_id LIMIT ?",
                 (max(1, min(int(limit), 1000)),),
             )
             groups = {}
             for key, stamp in rows:
                 groups.setdefault(stamp, []).append(self._get(db, key))
             return [
-                {"event_at": stamp, "claims": claims, "ordering": "undetermined" if len(claims) > 1 else "single"}
+                {
+                    "timestamp": stamp,
+                    "event_at": stamp if basis == "event" else None,
+                    "published_at": stamp if basis == "publication" else None,
+                    "basis": basis,
+                    "claims": claims,
+                    "ordering": "undetermined" if len(claims) > 1 else "single",
+                }
                 for stamp, claims in groups.items()
             ]
 
@@ -548,6 +668,14 @@ class Ontology:
             rows = db.execute(
                 "SELECT sequence,revision FROM ontology_changes WHERE sequence>? ORDER BY sequence LIMIT ?",
                 (int(after), max(1, min(int(limit), 100))),
+            )
+            return [{"sequence": row[0], "research": self._get(db, row[1])} for row in rows]
+
+    def publications(self, session_id, *, limit=20):
+        with self.container.connection() as db:
+            rows = db.execute(
+                "SELECT c.sequence,c.revision FROM ontology_changes c JOIN ontology_runs r ON r.id=c.run_id WHERE json_extract(r.payload,'$.session_id')=? ORDER BY c.sequence DESC LIMIT ?",
+                (session_id, max(1, min(int(limit), 100))),
             )
             return [{"sequence": row[0], "research": self._get(db, row[1])} for row in rows]
 

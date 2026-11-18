@@ -91,7 +91,21 @@ dependencies = [
 [project.optional-dependencies]
 # SharedData owns ontology persistence. Its supported Python range applies only
 # when this optional feature is installed, not to the lean SharedAgents core.
-ontology = ["shareddata>=6.101.1,<7"]
+ontology = [
+    "shareddata[search]>=6.103.0,<7",
+    "sqlalchemy>=2.0,<3",
+    "sqlglot>=30,<31",
+    "pyyaml>=6.0",
+]
+# Install vendor drivers only for the configured data sources.
+ontology-duckdb = ["duckdb>=1.4", "duckdb-engine>=0.17"]
+ontology-postgres = ["psycopg[binary]>=3.2"]
+ontology-mysql = ["mysql-connector-python>=9.0"]
+ontology-snowflake = ["snowflake-sqlalchemy>=1.7"]
+ontology-databricks = ["databricks-sqlalchemy>=2.0"]
+ontology-clickhouse = ["clickhouse-connect>=0.8"]
+ontology-trino = ["trino[sqlalchemy]>=0.330"]
+ontology-kyuubi = ["pyhive[hive]>=0.7", "thrift>=0.20"]
 # Doc/media tooling + the bundled MCP servers. Opt-in via
 # `pip install sharedagents[full]`. Heavy and version-fragile across Python
 # releases (markitdown pins old magika; onnxruntime/pandas/azure), which

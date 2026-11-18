@@ -1,0 +1,174 @@
+.ontology-main {
+  max-width: 1440px;
+  margin: auto;
+  padding: 24px;
+  color: var(--text-primary, #e8edf3);
+}
+.ontology-main h2 {
+  font-size: 1.1rem;
+}
+.ontology-main input,
+.ontology-main textarea {
+  box-sizing: border-box;
+  background: var(--bg-secondary, #18202c);
+  color: inherit;
+  border: 1px solid var(--border, #3d4a5c);
+  padding: 10px;
+  border-radius: 6px;
+}
+.ontology-main button {
+  cursor: pointer;
+  padding: 9px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border, #3d4a5c);
+  background: var(--bg-secondary, #18202c);
+  color: inherit;
+}
+.ontology-main :focus-visible {
+  outline: 2px solid #70b8ff;
+}
+.ontology-main form {
+  display: flex;
+  gap: 10px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+.ontology-main label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ontology-workspace {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+}
+.ontology-workspace aside {
+  max-height: 75vh;
+  overflow: auto;
+}
+.ontology-object {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 6px 0;
+}
+.ontology-object small {
+  display: block;
+  opacity: 0.65;
+  margin-top: 4px;
+}
+.ontology-main svg {
+  width: 100%;
+  max-height: 430px;
+  border: 1px solid var(--border, #3d4a5c);
+  border-radius: 8px;
+  background: var(--bg-secondary, #121b26);
+}
+.ontology-main svg text {
+  fill: var(--text-primary, #e8edf3);
+  font: 12px sans-serif;
+}
+.ontology-main svg circle {
+  fill: #247ab5;
+  stroke: #8ed2ff;
+  cursor: pointer;
+}
+.ontology-main svg line {
+  stroke: #52687c;
+  stroke-width: 1.5;
+}
+.ontology-main pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.ontology-main article {
+  border-top: 1px solid var(--border, #3d4a5c);
+  padding-top: 12px;
+}
+.ontology-main #ontology-edit {
+  display: grid;
+  grid-template-columns: 1fr;
+  margin-bottom: 20px;
+}
+.ontology-main #ontology-review {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ontology-main #ontology-status {
+  min-height: 24px;
+  color: #a8c9e8;
+}
+@media (max-width: 760px) {
+  .ontology-workspace {
+    grid-template-columns: 1fr;
+  }
+  .ontology-workspace aside {
+    max-height: 220px;
+  }
+  .ontology-main {
+    padding: 14px;
+  }
+  .ontology-main svg {
+    max-height: 260px;
+  }
+}
+.ontology-main [hidden] {
+  display: none !important;
+}
+body.ontology-body {
+  display: flex;
+  overflow: hidden;
+  height: 100vh;
+}
+.ontology-body #ontology-app {
+  flex: 1;
+  min-width: 0;
+  height: 100vh;
+  overflow: auto;
+}
+.ontology-body .mon-header {
+  padding: 12px 24px;
+}
+.ontology-body .mon-header h1 {
+  font-size: 20px;
+  margin: 0;
+}
+.ontology-body .mon-header .mon-logo {
+  color: var(--text-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+.ontology-body #ontology-summary {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.ontology-main {
+  box-sizing: border-box;
+  width: 100%;
+}
+.ontology-main > p {
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+.ontology-main #ontology-search > label {
+  min-width: 240px;
+  flex: 1;
+}
+.ontology-main input,
+.ontology-main textarea {
+  font: inherit;
+}
+.ontology-main h2,
+.ontology-main h3 {
+  margin: 20px 0 12px;
+}
+.ontology-main label {
+  line-height: 1.5;
+}
+.ontology-main article p {
+  color: var(--text-secondary);
+}

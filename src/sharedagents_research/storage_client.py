@@ -11,6 +11,12 @@ from .ontology import encoded, open_ontology
 
 
 def configuration():
+    override = os.environ.get("SHAREDAGENTS_ONTOLOGY_CONFIG")
+    if override:
+        block = json.loads(Path(override).read_text())
+        if not isinstance(block, dict):
+            raise ValueError("ontology configuration must be an object")
+        return block
     home = Path(os.environ.get("SHAREDAGENTS_HOME", str(Path.home() / ".sharedagents")))
     try:
         block = json.loads((home / "config.json").read_text()).get("ontology", {})
@@ -25,7 +31,11 @@ class OntologyProcess:
     """One awaited application operation in a configured SharedData interpreter."""
 
     def __init__(self, python, root, scope, create):
-        self.python, self.root, self.scope, self.create = str(python), str(root), scope, create
+        executable = os.path.expanduser(str(python))
+        # Preserve a virtual environment's interpreter symlink. realpath() would
+        # silently select the base interpreter and lose its installed SDK.
+        self.python = os.path.abspath(executable) if os.path.dirname(executable) else executable
+        self.root, self.scope, self.create = str(root), scope, create
 
     def __getattr__(self, action):
         if action not in {
@@ -40,6 +50,35 @@ class OntologyProcess:
             "status",
             "timeline",
             "export",
+            "publications",
+            "fact_evidence",
+            "model_get",
+            "model_list",
+            "model_put",
+            "model_review",
+            "model_retire",
+            "model_history",
+            "model_search",
+            "model_embed",
+            "embedding_candidates",
+            "model_retrieve",
+            "model_path",
+            "model_coverage",
+            "model_export",
+            "model_import",
+            "compile_catalog",
+            "retrieved_tables",
+            "record_query",
+            "query_catalog",
+            "model_put_many",
+            "table_context",
+            "retrieve_table",
+            "compilation_status",
+            "apply_rules",
+            "model_analytics",
+            "evidence_chunks",
+            "index_evidence",
+            "evidence_search",
         }:
             raise AttributeError(action)
 

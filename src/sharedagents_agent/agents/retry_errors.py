@@ -26,6 +26,10 @@ _PARAMS = re.compile(
 def permanent_error_classification(classification: str, message: str = "") -> str:
     """Return a canonical permanent class, or empty for unchanged retry policy."""
     text = f"{classification}\n{message}"
+    if classification == "ontology_publication":
+        # The native research loop already gave two bounded repair rounds.
+        # A full turn retry cannot repair a missing data-layer installation.
+        return classification
     if _QUOTA.search(text):
         return "quota_exhausted"
     if _PARAMS.search(text):

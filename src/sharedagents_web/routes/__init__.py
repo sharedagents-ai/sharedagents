@@ -25,6 +25,7 @@ from sharedagents_web.routes.goals import bp as goals_bp
 from sharedagents_web.routes.local import bp as local_bp
 from sharedagents_web.routes.loops import bp as loops_bp
 from sharedagents_web.routes.models import bp as models_bp
+from sharedagents_web.routes.ontology import bp as ontology_bp
 from sharedagents_web.routes.presence import bp as presence_bp
 from sharedagents_web.routes.secrets import bp as secrets_bp
 from sharedagents_web.routes.sessions import bp as sessions_bp
@@ -61,6 +62,7 @@ ALL_BLUEPRINTS = [
     channels_bp,
     users_bp,
     sharing_bp,
+    ontology_bp,
     secrets_bp,
 ]
 
