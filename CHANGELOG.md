@@ -6,6 +6,12 @@ this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Keep context compaction summaries and statistics in their subagent session,
+  accessible from the Agents footer, instead of adding cards and raw output to
+  the main chat. Preserve this separation after reload and virtual scrolling.
+
 ## [1.0.2] - 2026-11-17
 
 ### Fixed
