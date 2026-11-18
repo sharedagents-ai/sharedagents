@@ -138,9 +138,7 @@ def _js(vectors, extra_files=()):
         ".catch(function(e){process.stdout.write(JSON.stringify("
         "{__err:String((e&&e.message)||e)}));});"
     )
-    done = subprocess.run(
-        [NODE, "-e", script], capture_output=True, text=True, encoding="utf-8", timeout=30
-    )
+    done = subprocess.run([NODE, "-e", script], capture_output=True, text=True, encoding="utf-8", timeout=30)
     assert done.returncode == 0, done.stderr
     return json.loads(done.stdout)
 
