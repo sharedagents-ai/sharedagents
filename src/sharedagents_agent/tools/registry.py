@@ -33,6 +33,7 @@ from sharedagents_loop.loop_tools import (
     cron_list_params,
     schedule_wakeup_params,
 )
+from sharedagents_research.native_tools import schemas as _ontology_schemas
 
 
 class ToolKind(Enum):
@@ -1695,6 +1696,23 @@ _HIDDEN_LEGACY_TOOL_NAMES = frozenset(
     }
 )
 BUILTIN_TOOLS = tuple(t for t in BUILTIN_TOOLS if t.name not in _HIDDEN_LEGACY_TOOL_NAMES)
+
+_ONTOLOGY_DESCRIPTIONS = {
+    "ontology_search": "Search accumulated research evidence, entities, concepts and definitions; inspect stored objects, timeline, publication history or readiness.",
+    "ontology_source": "Fetch an HTTP(S) source and automatically save its returned text in the current research run. Begin with ontology_update first; extract entities and concepts from every saved source.",
+    "ontology_update": "Begin research with its question; submit source-grounded entities, concepts and claims using source-local keys; finish with the answer, stored citation IDs and limitations. A native research turn requires a successful finish publication.",
+}
+BUILTIN_TOOLS += tuple(
+    Tool(
+        name=name,
+        kind={"ontology_search": ToolKind.READ, "ontology_source": ToolKind.NETWORK, "ontology_update": ToolKind.WRITE}[
+            name
+        ],
+        description=_ONTOLOGY_DESCRIPTIONS[name],
+        parameters=schema,
+    )
+    for name, schema in _ontology_schemas().items()
+)
 
 
 # Legacy (pre-lean-agent-deck, Claude-Code-style TitleCase) builtin tool ids

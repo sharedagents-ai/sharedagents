@@ -33,7 +33,7 @@
   const TOPIC_EMOJI_MAP = [
     [/\bgeneral\b/, "💬"], [/web ?ui|webui|\bweb\b|frontend|ui\b/, "🖥️"],
     [/health|medical|doctor/, "🩺"], [/market|trad|order|oms|portfolio|risk/, "📈"],
-    [/wiki|docs?|research/, "📚"], [/telegram/, "✈️"], [/gpu|cuda|vllm/, "🎮"],
+    [/docs?|research/, "📚"], [/telegram/, "✈️"], [/gpu|cuda|vllm/, "🎮"],
     [/shared ?data|database|\bdata\b/, "🗄️"], [/sharedagents|claw/, "🐾"],
     [/\btest|qa\b/, "🧪"], [/claude/, "🤖"], [/codex|openai/, "🧠"],
     [/voice|audio|realtime/, "🎙️"], [/bug|fix|error|debug/, "🐛"],

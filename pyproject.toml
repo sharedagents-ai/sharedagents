@@ -89,6 +89,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# SharedData owns ontology persistence. Its supported Python range applies only
+# when this optional feature is installed, not to the lean SharedAgents core.
+ontology = ["shareddata>=6.101.1,<7"]
 # Doc/media tooling + the bundled MCP servers. Opt-in via
 # `pip install sharedagents[full]`. Heavy and version-fragile across Python
 # releases (markitdown pins old magika; onnxruntime/pandas/azure), which
