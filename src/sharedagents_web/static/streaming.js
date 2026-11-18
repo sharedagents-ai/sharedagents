@@ -5,7 +5,6 @@ const DIRECT_DISPATCH_TITLES = new Set([
   "delegate_claude",
   "delegate_codex",
   "delegate_antigravity",
-  "compact_context",
 ]);
 const DELEGATE_BADGES = {
   delegate_claude: "↳ via claude",
@@ -482,7 +481,6 @@ class WebBlockStream {
     this._taskBlk = null; // the turn's single 🗒️ harness-task card
     this._planBlk = null; // the turn's single 📐 plan card (updated in place)
     this._taskPending = {}; // call_id → task row awaiting its id from the result
-    this._compactionKeys = new Set(); // durable/live compaction notices already mounted
     this._pendingBadge = "";
     this._pendThink = ""; // hold whitespace-only leading deltas
     this._pendAnswer = "";
@@ -635,41 +633,6 @@ class WebBlockStream {
     blk.closed = true; // static card — nothing left to stream into it
   }
 
-  // Automatic compaction is a lifecycle event rather than a tool call, but it
-  // is still an operator-visible event in the same chronological stream. Keep
-  // it as the same notice block used by history replay so live and reload
-  // rendering share one card path. A child-session id is the durable identity;
-  // the fallback key handles older events that predate that field.
-  compactionNotice(event) {
-    const source = event && typeof event === "object" ? event : {};
-    const nested = source.notice && typeof source.notice === "object"
-      ? source.notice
-      : null;
-    const raw = source.payload && typeof source.payload === "object"
-      ? source.payload
-      : nested && nested.payload && typeof nested.payload === "object"
-        ? nested.payload
-        : source;
-    const payload = { ...raw };
-    if (payload.ts == null && source.ts != null) payload.ts = source.ts;
-    const key = String(
-      payload.child_session_id ||
-      [
-        payload.compaction_count,
-        payload.before_tokens,
-        payload.after_tokens,
-        payload.ts,
-      ].join(":"),
-    );
-    if (key && this._compactionKeys.has(key)) return null;
-    if (key) this._compactionKeys.add(key);
-    this._closeRound();
-    const blk = this._open("notice");
-    blk.notice = { kind: "notice", subtype: "compaction", payload };
-    blk.closed = true; // stats card is a completed, non-streaming widget
-    return blk;
-  }
-
   _consumeInlineLine(line, hadNewline) {
     const trimmed = String(line || "").trim();
     const notice = parseRuntimeNoticeLine(trimmed);
@@ -756,6 +719,9 @@ class WebBlockStream {
 
   toolCall(callId, name, args) {
     this._titles[callId] = name;
+    // Compaction output belongs to its view-only child session in Agents.
+    // Keep the call identity for replay and errors without splitting the answer.
+    if (name === "compact_context") return;
     // AskUserQuestion round-trips to a human — never fold into Activity.
     // History reconstruction mounts the interactive card from askUserCalls.
     if (_isAskUserTool(name)) {
@@ -780,7 +746,7 @@ class WebBlockStream {
       this._sawOutputSection = true;
       return;
     }
-    // Direct-dispatch (/claude, /codex, /compact …): the tool BODY is the
+    // Direct-dispatch (/claude, /codex …): the tool BODY is the
     // user-facing answer, so route it into 💬 — ALWAYS, regardless of /tools —
     // never a 🔧 block. Queue a quiet attribution badge.
     if (DIRECT_DISPATCH_TITLES.has(name)) {
@@ -902,6 +868,7 @@ class WebBlockStream {
   }
 
   toolDelta(callId, delta) {
+    if (this._titles[callId] === "compact_context") return;
     if (this._directCalls.has(callId)) {
       this.textDelta(delta);
       return;
@@ -934,6 +901,13 @@ class WebBlockStream {
   }
 
   toolResult(callId, content, ok) {
+    if (this._titles[callId] === "compact_context") {
+      if (ok === false) {
+        this.textDelta("\n\nContext compaction failed." +
+          (content ? "\n\n" + content : "") + "\n\n");
+      }
+      return;
+    }
     const ask = (this.askUserCalls || []).find((c) => c.callId === callId);
     if (ask) {
       ask.content = typeof content === "string" ? content : "";
@@ -1102,6 +1076,13 @@ class WebBlockStream {
   visibleBlocks() {
     return this.blocks.filter((b) => !b.deleted);
   }
+
+  isCompactionOnly() {
+    const names = Object.values(this._titles);
+    return !this.aborted && !this.error && names.length > 0 &&
+      names.every((name) => name === "compact_context") &&
+      !this.visibleBlocks().some((blk) => WebBlockStream._hasContent(blk));
+  }
 }
 
 // Rebuild a completed turn from the lossless render_segments returned by the
@@ -1165,12 +1146,19 @@ function blockStreamFromSavedSegments(segments, fallbackContent, vis, opts) {
   let lastMetrics = {};
   let sawAssistantContent = false;
   const segs = Array.isArray(segments) ? segments : [];
+  // Older direct-dispatch turns may repeat the tool body in the committed
+  // assistant answer. Match the typed result, never arbitrary "compacted" prose.
+  const compactionResults = new Set(segs
+    .filter((seg) => seg && seg.kind === "tool" && seg.name === "compact_context" &&
+      typeof seg.content === "string" && seg.content.trim())
+    .map((seg) => seg.content.trim()));
   const reasoningOnly = _replayIsReasoningOnly(opts, segs);
   for (const seg of segs) {
     if (!seg || typeof seg !== "object") continue;
     if (seg.kind === "assistant") {
       let thinking = typeof seg.thinking === "string" ? seg.thinking : "";
       let content = typeof seg.content === "string" ? seg.content : "";
+      if (compactionResults.has(content.trim())) content = "";
       if (reasoningOnly && content) {
         thinking = _mergeThinkText(thinking, content);
         content = "";
@@ -1221,7 +1209,8 @@ function blockStreamFromSavedSegments(segments, fallbackContent, vis, opts) {
         seg.subtype || (seg.notice && seg.notice.subtype) || "",
       ).toLowerCase();
       if (subtype === "compaction") {
-        bs.compactionNotice(seg);
+        // The child session retains the summary, stats and lifecycle details.
+        continue;
       } else if (typeof seg.text === "string") {
         bs.textDelta(seg.text);
         sawAssistantContent = true;
@@ -1238,6 +1227,7 @@ function blockStreamFromSavedSegments(segments, fallbackContent, vis, opts) {
     !inProgress &&
     !sawAssistantContent &&
     typeof fallbackContent === "string" &&
+    !compactionResults.has(fallbackContent.trim()) &&
     fallbackContent.trim()
   ) {
     if (reasoningOnly) {
@@ -1738,6 +1728,10 @@ function renderBlockTurn(t, shouldScroll = true) {
     return;
   }
   const bs = t.bs;
+  // Keep the physical turn in the cache for SSE adoption and virtual scrolling,
+  // while omitting an otherwise empty compaction control turn from the chat.
+  const wasHidden = t.el.hidden;
+  t.el.hidden = bs.isCompactionOnly();
   const contentEl = t.el.querySelector(".message-content");
   if (!contentEl) return;
   const idx = state.msgCache.findIndex((m) => m.el === t.el);
@@ -1857,7 +1851,10 @@ function renderBlockTurn(t, shouldScroll = true) {
   const raw = foldedRawFromBlocks(bs);
   t.el.dataset.raw = raw;
   t.el.classList.toggle("has-content", !!(raw && raw.trim()));
-  if (idx >= 0) VirtualScroller.update(idx, raw);
+  if (idx >= 0) {
+    VirtualScroller.update(idx, raw);
+    if (wasHidden || t.el.hidden) VirtualScroller.measure(idx, t.el);
+  }
   if (typeof _mountAskUserFromBlockStream === "function") {
     _mountAskUserFromBlockStream(t);
   }
@@ -2815,123 +2812,6 @@ function runtimeNoticeCardHtml(parsed, uid) {
   );
 }
 
-function _compactionNoticeSnapshot(notice) {
-  const p = notice && notice.payload && typeof notice.payload === "object"
-    ? notice.payload
-    : {};
-  const stats = {};
-  [
-    "before_tokens", "after_tokens", "removed_tokens", "removed_chars",
-    "context_window",
-  ].forEach((key) => {
-    if (p[key] != null) stats[key] = p[key];
-  });
-  const trimmed =
-    (Array.isArray(p.truncated_tool_call_ids)
-      ? p.truncated_tool_call_ids.length : 0) +
-    (Array.isArray(p.dropped_tool_call_ids)
-      ? p.dropped_tool_call_ids.length : 0) +
-    (Number(p.dropped_turns) || 0);
-  if (trimmed) stats.messages_trimmed = trimmed;
-  if (p.at != null || p.ts != null) stats.at = p.at || p.ts;
-  return {
-    stats,
-    summary: typeof p.summary === "string" ? p.summary : "",
-    count: Number(p.compaction_count) || 0,
-    key: String(p.child_session_id || p.ts || ""),
-    childSid: String(p.child_session_id || ""),
-    trigger: String(p.trigger || ""),
-  };
-}
-
-function _compactionNoticeCardHtml(notice, uid) {
-  if (typeof bindCompactionCardDelegation === "function") {
-    bindCompactionCardDelegation();
-  }
-  const snap = _compactionNoticeSnapshot(notice);
-  const esc = typeof escapeHtml === "function"
-    ? escapeHtml
-    : (value) => String(value).replace(/[&<>"']/g, (c) => (
-      c === "&" ? "&amp;" : c === "<" ? "&lt;" : c === ">" ? "&gt;" :
-        c === '"' ? "&quot;" : "&#39;"
-    ));
-  const escAttr = typeof escapeAttr === "function" ? escapeAttr : esc;
-  const line = typeof compactionCardLineHtml === "function"
-    ? compactionCardLineHtml(snap.stats, snap.count, snap.summary)
-    : (
-      `<span class="mcs-title">🗜 Compaction${snap.count > 0 ?
-        ` #${snap.count}` : ""}</span>` +
-      `<span class="mcs-line">${esc(
-        snap.stats.before_tokens != null && snap.stats.after_tokens != null
-          ? `${snap.stats.before_tokens} → ${snap.stats.after_tokens}`
-          : snap.summary,
-      )}</span>`
-    );
-  const body = typeof compactStatsBodyHtml === "function"
-    ? compactStatsBodyHtml(snap.stats, snap.summary)
-    : (snap.summary
-      ? `<p class="csp-summary">${esc(snap.summary)}</p>`
-      : "");
-  if (!line && !body) return "";
-  const key = uid != null
-    ? `compaction-${uid}`
-    : (snap.key || JSON.stringify(snap.stats));
-  if (snap.childSid) {
-    // The compaction ran as a subagent session: show it like every other
-    // delegation (card row -> opens the child, read-only), with the stats and
-    // the summary in the expandable body.
-    _bindDelegationCardLinks();
-    const fmt = typeof fmtCompactTokens === "function"
-      ? fmtCompactTokens : (v) => String(v);
-    const st = snap.stats;
-    const parts = [];
-    if (st.before_tokens != null && st.after_tokens != null) {
-      parts.push(`${fmt(st.before_tokens)} → ${fmt(st.after_tokens)}`);
-    }
-    if (Number(st.removed_tokens) > 0) parts.push(`−${fmt(st.removed_tokens)} tokens`);
-    const why = {
-      threshold: "context threshold", overflow: "context overflow",
-      tool: "requested by the agent", forced: "forced", budget: "turn budget",
-    }[snap.trigger] || snap.trigger;
-    const description = [
-      snap.count > 0 ? `#${snap.count}` : "",
-      parts.join(" · ") || (snap.summary || "").slice(0, 80),
-      why ? `(${why})` : "",
-    ].filter(Boolean).join(" ");
-    const href = (typeof BASE === "string" ? BASE : "") +
-      "/?session=" + encodeURIComponent(snap.childSid);
-    const icon = typeof _toolStatusIcon === "function"
-      ? _toolStatusIcon("ok") : "✓";
-    return (
-      `<details class="block-tool block-delegate toolcall toolcall-ok tc-collapsible block-compaction-notice"` +
-      ` data-delegate="1" data-notice-key="${escAttr(String(key))}">` +
-      `<summary><span class="delegate-summary"><span class="delegate-heading">` +
-      `<span class="delegate-glyph" aria-hidden="true">↳</span>Subagent` +
-      `<span class="delegate-mode" data-mode="sync" title="Foreground subagent">Sync</span></span>` +
-      `<span class="delegate-children">` +
-      `<a class="delegate-child" data-status="completed" href="${escAttr(href)}"` +
-      ` data-delegate-session="${escAttr(snap.childSid)}"` +
-      ` aria-label="compaction subagent session (view only)">` +
-      `<span class="tc-status" aria-hidden="true">${icon}</span>` +
-      `<span class="delegate-identity"><span class="tc-name">compaction</span>` +
-      `<span class="delegate-description" title="${escAttr(description)}">${esc(description)}</span></span>` +
-      `<span class="delegate-verb" role="status">Completed</span></a></span></span>` +
-      `<span class="tc-caret" aria-hidden="true">▶</span></summary>` +
-      `<div class="block-tool-body delegate-card-body">${body}</div>` +
-      `</details>`
-    );
-  }
-  return (
-    `<div class="message-compaction-stats block-compaction-notice"` +
-    ` data-notice-key="${escAttr(String(key))}">` +
-    `<button type="button" class="mcs-toggle" aria-expanded="false">` +
-    line +
-    `<span class="mcs-caret" aria-hidden="true">▾</span></button>` +
-    `<div class="mcs-details" hidden>${body}</div>` +
-    `</div>`
-  );
-}
-
 function _blockHtml(blk, bs) {
   if (blk.kind === "think") {
     const txt = WebBlockStream._text(blk);
@@ -3044,9 +2924,7 @@ function _blockHtml(blk, bs) {
   // Runtime notice card (nudge / loop / distill / …). The whole card is a
   // disclosure: summary = event + reason chips, body = expandable explanation.
   if (blk.kind === "notice") {
-    let html = blk.notice && blk.notice.subtype === "compaction"
-      ? _compactionNoticeCardHtml(blk.notice, blk.uid)
-      : runtimeNoticeCardHtml(blk.notice, blk.uid);
+    let html = runtimeNoticeCardHtml(blk.notice, blk.uid);
     // A turn that ends with no output after the notice lands its stats row on
     // this block (turnEnded targets the last visible block) — keep the row.
     if (blk.stats)
@@ -4009,8 +3887,8 @@ function renderCanonicalEvent(event, frame) {
       break;
     }
     case "tool_call": {
-      // Always fed to the model — it routes direct-dispatch bodies (delegate_*/
-      // compact) into the 💬 answer (even with /tools off), drops internal
+      // Always fed to the model — it routes direct-dispatch delegate bodies
+      // into the 💬 answer (even with /tools off), drops compaction/internal
       // tools, and otherwise opens a 🔧 block per /tools.
       const _nm = event.name || "tool";
       const _ph =
@@ -4358,15 +4236,9 @@ function renderCanonicalEvent(event, frame) {
         error: event.error,
       });
       renderBlockTurn(t);
-      // The compaction turn's body IS the engine's summary ("compacted: …"),
-      // so a content match identifies the turn exactly (aborted/failed
-      // compactions commit an error body and never match). Attach the stats
-      // card INSIDE this turn's bubble — the chat-area replacement for the
-      // removed input-area chip/pop — and stash the snapshot on the cache
-      // entry so virtual-scroller rebuilds of this message re-mount the SAME
-      // numbers (the header stats were persisted before TurnDone, so they ARE
-      // this turn's snapshot).
-      if (typeof mountCompactionStatsCard === "function" &&
+      // Structured statistics belong only in the view-only compaction child.
+      // Keep its snapshot available when the virtual scroller rebuilds it.
+      if (state.currentAgent === "compaction" && typeof mountCompactionStatsCard === "function" &&
           t.el && t.el.dataset && typeof t.el.dataset.raw === "string" &&
           t.el.dataset.raw.trim().startsWith("compacted")) {
         const compactSnap = {
@@ -4565,15 +4437,8 @@ function renderCanonicalEvent(event, frame) {
     case "compaction": {
       const phase = String(event.phase || "").toLowerCase();
       if (phase === "done" || phase === "ended" || phase === "complete") {
-        // Automatic compaction is not a direct-dispatch turn, so it has no
-        // compact_context tool_result for the manual-card hook to recognize.
-        // Insert the lifecycle event into the current ordered block stream;
-        // history replay feeds the same method from its notice segment.
-        const t = state.liveTurn || ensureLiveAssistant();
-        if (t && t.bs && typeof t.bs.compactionNotice === "function") {
-          t.bs.compactionNotice(event);
-          renderBlockTurn(t);
-        }
+        // Details stay in the compaction child, opened through the Agents
+        // footer. A lifecycle event must not create or split a parent bubble.
         // The post-compaction prompt count is authoritative and already rides
         // this SSE event; update the footer without a per-round REST fetch.
         applyLiveContextMetrics({

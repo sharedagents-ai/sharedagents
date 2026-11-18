@@ -18,6 +18,14 @@ Install the browser extra and complete the first-run wizard using the
 [installation guide](installation.md). Configure your provider endpoint and
 credentials in your private runtime environment, outside the source checkout.
 
+## Inspect context compaction
+
+Compaction runs in a separate, view-only subagent session. Open **Agents** in the
+composer footer and select **compaction** to read its summary and statistics.
+The main chat keeps the task conversation, and the context meter reflects the
+smaller prompt. Manual `/compact` actions use the same child session; failures
+and interrupted operations remain visible in the main chat.
+
 ## Follow tasks through the board
 
 The task board groups sessions into **Needs input**, **Working**, and

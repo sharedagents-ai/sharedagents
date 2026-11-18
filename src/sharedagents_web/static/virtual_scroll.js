@@ -192,7 +192,7 @@ const VirtualScroller = {
       // not collapse rows the operator had opened.
       activityDisclosureState: null,
       el: el || null,
-      height: 0,
+      height: null, // Unmeasured; a measured hidden message has height zero.
     });
     return idx;
   },
@@ -214,7 +214,7 @@ const VirtualScroller = {
   /** Measure a message element's height and cache it. */
   measure(idx, el) {
     if (idx >= 0 && idx < state.msgCache.length && el) {
-      const h = el.offsetHeight || ESTIMATED_MSG_HEIGHT;
+      const h = el.hidden ? 0 : el.offsetHeight || ESTIMATED_MSG_HEIGHT;
       state.msgCache[idx].height = h;
     }
   },
@@ -224,7 +224,7 @@ const VirtualScroller = {
     let h = 0;
     for (let i = fromIdx; i < toIdx; i++) {
       const m = state.msgCache[i];
-      h += (m && m.height) || ESTIMATED_MSG_HEIGHT;
+      h += (m && m.height) ?? ESTIMATED_MSG_HEIGHT;
     }
     return h;
   },
@@ -321,7 +321,7 @@ const VirtualScroller = {
     let leadingH = 0;
     let topIdx = 0;
     for (let i = 0; i < cache.length; i++) {
-      const h = cache[i].height || ESTIMATED_MSG_HEIGHT;
+      const h = cache[i].height ?? ESTIMATED_MSG_HEIGHT;
       if (leadingH + h > scrollTop) {
         topIdx = i;
         break;
@@ -718,7 +718,7 @@ const VirtualScroller = {
     // Find keepStart: first message whose bottom is within keepPx of scrollTop.
     for (let i = 0; i < cache.length; i++) {
       const m = cache[i];
-      const h = (m && m.height) || ESTIMATED_MSG_HEIGHT;
+      const h = (m && m.height) ?? ESTIMATED_MSG_HEIGHT;
       if (accH + h > scrollTop - keepPx) {
         keepStart = i;
         break;
@@ -730,7 +730,7 @@ const VirtualScroller = {
     accH = 0;
     for (let i = 0; i < cache.length; i++) {
       const m = cache[i];
-      const h = (m && m.height) || ESTIMATED_MSG_HEIGHT;
+      const h = (m && m.height) ?? ESTIMATED_MSG_HEIGHT;
       if (accH > scrollBottom + keepPx) {
         keepEnd = i;
         break;
@@ -872,8 +872,9 @@ const VirtualScroller = {
         el.dataset.raw = m.content;
         el.classList.toggle("has-content", !!(m.content && m.content.trim()));
       }
-      if (m.role === "assistant" && m.liveBs && m.liveBs.blocks.some((blk) => blk.delegate)) {
-        // A detached child's card can outlive its parent's turn and DOM node.
+      if (m.role === "assistant" && m.liveBs &&
+          (m.liveBs.isCompactionOnly() || m.liveBs.blocks.some((blk) => blk.delegate))) {
+        // Retain hidden control turns and detached children across DOM rebuilds.
         renderBlockTurn({ el, bs: m.liveBs }, false);
       } else if (m.role === "assistant" && m.segments) {
         renderBlockTurn(
@@ -937,7 +938,7 @@ const VirtualScroller = {
     if (m.role === "assistant") {
       el.dataset.raw = m.content || "";
       el.classList.toggle("has-content", !!(m.content && m.content.trim()));
-      if (m.liveBs && m.liveBs.blocks.some((blk) => blk.delegate)) {
+      if (m.liveBs && (m.liveBs.isCompactionOnly() || m.liveBs.blocks.some((blk) => blk.delegate))) {
         renderBlockTurn({ el, bs: m.liveBs }, false);
       } else if (m.segments) {
         renderBlockTurn(
@@ -1080,7 +1081,7 @@ const VirtualScroller = {
             timestamp: m.timestamp ? String(m.timestamp) : "",
             activityDisclosureState: null,
             el: null,
-            height: 0,
+            height: null,
           });
           return;
         }
@@ -1109,7 +1110,7 @@ const VirtualScroller = {
             : "",
           activityDisclosureState: null,
           el: null,
-          height: 0,
+          height: null,
         });
       });
     });
@@ -1472,6 +1473,8 @@ function _createDelegateCardElement(parsed, timestamp) {
   div.className =
     "message message-delegate" +
     (info.compact ? " message-delegate-compact" : "");
+  // /compact is a control action; its output lives in the compaction child.
+  div.hidden = info.compact;
   const timeLabel = formatMessageTime(timestamp);
   const detail = info.detail
     ? `<span class="task-card-verb">${escapeHtml(info.detail)}</span>`
