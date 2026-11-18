@@ -553,6 +553,7 @@ def test_explicit_sdk_worker_uses_shareddata_without_agent_dependencies(tmp_path
     python = os.environ.get("SHAREDAGENTS_TEST_SDK_PYTHON")
     if not python:
         pytest.skip("set SHAREDAGENTS_TEST_SDK_PYTHON for explicit SDK worker integration")
+    pytest.importorskip("SharedData.SearchIndex")
     worker = OntologyProcess(python, tmp_path, "test-worker", True)
     begin(worker)
     source, _ = observation(worker)
@@ -573,6 +574,7 @@ def test_explicit_setup_preserves_runtime_settings_and_checks_backend_first(tmp_
     python = os.environ.get("SHAREDAGENTS_TEST_SDK_PYTHON")
     if not python:
         pytest.skip("set SHAREDAGENTS_TEST_SDK_PYTHON for setup integration")
+    pytest.importorskip("SharedData.SQLite")
     monkeypatch.setenv("SHAREDAGENTS_HOME", str(tmp_path))
     monkeypatch.delenv("SHAREDAGENTS_ONTOLOGY_ROOT", raising=False)
     home = tmp_path / "agents" / "research"
