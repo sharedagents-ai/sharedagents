@@ -78,7 +78,8 @@ corpora in the public package. The completed checks include:
   matching direct SQLite results. Executed query and catalog revisions were pinned
   in the published receipt. This is one reviewed question, not a full benchmark.
 - Replaying 4,032 frozen classified-source extractions chronologically and with
-  eight concurrent shuffled workers produced identical final claim-state digests.
+  eight concurrent shuffled workers produced identical final claim-state, entity-identity and semantic-projection
+  digests. Audit revision histories still reflect their actual arrival order.
   Publication timelines stayed ordered and five disagreements remained contested.
   It made zero new model calls and does not represent extraction of the remaining
   eligible corpus. Exact quotes alone cannot prove semantic entailment.

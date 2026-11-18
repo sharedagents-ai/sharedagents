@@ -243,6 +243,62 @@ def test_concept_relationships_keep_multiple_targets_without_false_conflicts(sto
     assert store.describe(obj)["states"]
 
 
+def test_definition_previews_and_cardinality_converge_without_overwriting_refinement(tmp_path):
+    def ingest(store, index):
+        run = "definition-" + str(index)
+        begin(store, run)
+        name = "ACME" if index % 2 else "Acme"
+        text = name + " operates Field " + str(index) + "."
+        source = store.capture(run, "research-user", url="https://example.com/definition/" + str(index), text=text)
+        return store.extract(
+            run,
+            "research-user",
+            source["id"],
+            entities=[
+                {
+                    "key": "a",
+                    "name": name,
+                    "type": "company",
+                    "description": "A provisional company definition " + str(index),
+                    "quote": name,
+                },
+                {"key": "b", "name": "Field " + str(index), "quote": "Field " + str(index)},
+            ],
+            concepts=[
+                {
+                    "key": "p",
+                    "name": "operates",
+                    "type": "relation",
+                    "cardinality": "one" if index == 0 else "many",
+                    "quote": "operates",
+                }
+            ],
+            claims=[{"subject": "a", "predicate": "p", "object": "b", "quote": text}],
+        )
+
+    projections = []
+    for n, order in enumerate(((0, 1), (1, 0))):
+        store = open_ontology(tmp_path / str(n), "test-user")
+        for index in order:
+            ingest(store, index)
+        with store.container.connection() as db:
+            states = [
+                store._get(db, row[0]) for row in db.execute("SELECT revision FROM ontology_states ORDER BY fact")
+            ]
+        projections.append(([obj["data"] for obj in store.model_list(limit=1000)], states))
+    assert projections[0] == projections[1]
+    term = next(obj for obj in store.model_list() if obj["data"]["name"].casefold() == "acme")
+    edited = store.model_put(
+        "term",
+        dict(term["data"], description="Explicitly refined company meaning"),
+        actor="research-user",
+        key=term["id"],
+        expected=term["revision"],
+    )
+    ingest(store, 2)
+    assert store.model_get(term["id"]) == edited
+
+
 @pytest.mark.parametrize("value", [None, [], {}, 1, True])
 def test_malformed_urls_are_validation_errors(value):
     with pytest.raises(ValueError):

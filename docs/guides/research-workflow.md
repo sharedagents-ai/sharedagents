@@ -114,7 +114,10 @@ to execute them; metadata alone is never proof of an executed metric.
 ## Evidence, conflict and time
 
 Entities and concepts keep stable provisional identities and immutable,
-source/model-attributed definition proposals. Scalar facts distinguish unit,
+source/model-attributed definition proposals. Automatic definition previews use
+a deterministic proposal ordering; that preview does not adjudicate meaning.
+Explicit native/human refinements and certified definitions take precedence.
+Per-extraction cardinality cannot change an earlier claim based on arrival order. Scalar facts distinguish unit,
 period and basis. Multi-valued object relations distinguish their targets and
 modality, so two different valid targets are not automatically contradictions.
 Different active values for the same fact remain contested.
@@ -144,6 +147,9 @@ objects, mappings and revisions, edit drafts, and certify or retire permitted
 records. Workspace roles are viewer, editor, reviewer and owner; agents do not
 receive the human certification capability. Revision checks reject stale edits.
 Edits invalidate old vectors atomically; lexical retrieval stays available.
+Committed embedding receipts skip unchanged revisions and retain failed work for
+retry. An unavailable embedding service reports explicit degraded indexing while
+keeping the committed domain record and lexical evidence searchable.
 Automatic re-embedding after a human edit is not yet a background maintenance
 feature; the native definition/import path embeds changed objects when configured.
 

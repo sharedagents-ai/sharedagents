@@ -54,6 +54,9 @@ class SemanticModel:
         )
         db.execute("CREATE TABLE IF NOT EXISTS ontology_semantic_migrations (name TEXT PRIMARY KEY)")
         db.execute(
+            "CREATE TABLE IF NOT EXISTS ontology_embedding_receipts (object_id TEXT NOT NULL,model TEXT NOT NULL,revision TEXT NOT NULL,PRIMARY KEY(object_id,model))"
+        )
+        db.execute(
             "CREATE TABLE IF NOT EXISTS ontology_semantic_names (name TEXT NOT NULL,object_id TEXT NOT NULL,PRIMARY KEY(name,object_id))"
         )
         db.execute("CREATE INDEX IF NOT EXISTS ontology_semantic_names_object ON ontology_semantic_names(object_id)")
@@ -305,6 +308,13 @@ class SemanticModel:
             "samples_are_previews": True,
         }
 
+    def retrieve_table(self, run_id, actor, key, *, offset=0, limit=16):
+        context = self.table_context(key, offset=offset, limit=limit)
+        with self.container.connection(write=True) as db:
+            self._run(db, run_id, actor)
+            db.execute("INSERT OR IGNORE INTO ontology_retrieved VALUES (?,?)", (run_id, key))
+        return context
+
     def compilation_status(self, connection):
         from .ontology import identity
 
@@ -436,7 +446,27 @@ class SemanticModel:
                 prepared.append(
                     {"key": obj["id"], "text": text, "vector": row["vector"], "metadata": {"kind": obj["kind"]}}
                 )
-            return {"indexed": index.put(prepared, connection=db)}
+            indexed = index.put(prepared, connection=db)
+            db.executemany(
+                "INSERT INTO ontology_embedding_receipts VALUES (?,?,?) ON CONFLICT(object_id,model) DO UPDATE SET revision=excluded.revision",
+                [(row["id"], model, row["revision"]) for row in rows],
+            )
+            return {"indexed": indexed}
+
+    def embedding_candidates(self, keys, *, model):
+        """Return only current revisions without a committed embedding receipt."""
+        if not isinstance(keys, list) or len(keys) > 500:
+            raise ValueError("provide at most 500 semantic object identifiers")
+        with self.container.connection() as db:
+            pending = []
+            for key in dict.fromkeys(keys):
+                obj = self._model_get(db, key)
+                receipt = db.execute(
+                    "SELECT revision FROM ontology_embedding_receipts WHERE object_id=? AND model=?", (key, model)
+                ).fetchone()
+                if obj and (not receipt or receipt[0] != obj["revision"]):
+                    pending.append(obj)
+            return pending
 
     def apply_rules(self, *, actor):
         """Apply reviewed literal tagging rules to drafts; preserve reviewed objects."""

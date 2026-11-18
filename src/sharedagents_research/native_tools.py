@@ -110,7 +110,13 @@ def search(arguments):
     if action == "analytics":
         return store.model_analytics()
     if action == "table":
-        return store.table_context(arguments["id"], offset=arguments.get("offset", 0), limit=arguments.get("limit", 16))
+        return store.retrieve_table(
+            context["run_id"],
+            context["actor"],
+            arguments["id"],
+            offset=arguments.get("offset", 0),
+            limit=arguments.get("limit", 16),
+        )
     if action == "compilation_status":
         return store.compilation_status(arguments["connection"])
     if action == "model_history":
@@ -157,9 +163,7 @@ async def capture_source(arguments):
         published_at_verified=False,
         truncated=result.truncated,
     )
-    embedder = _embedder()
-    await _index_evidence(store, source["id"], embedder)
-    return {
+    value = {
         "source_id": source["id"],
         "url": source["url"],
         "text": source["text"][:16000],
@@ -168,8 +172,17 @@ async def capture_source(arguments):
         "extraction_required": True,
         "publisher": source["publisher"],
         "publication_time_status": "proposed" if source["published_at"] else "unknown",
-        "retrieval_mode": "hybrid" if embedder else "lexical",
     }
+    try:
+        embedder = _embedder()
+        await _index_evidence(store, source["id"], embedder)
+        value["retrieval_mode"] = "hybrid" if embedder else "lexical"
+    except Exception as exc:
+        # Capture already committed. Preserve searchable evidence and make the
+        # optional indexing failure explicit rather than report a false rollback.
+        await _index_evidence(store, source["id"], None)
+        value.update(retrieval_mode="lexical", indexing_complete=False, indexing_error=type(exc).__name__)
+    return value
 
 
 def update(arguments):
@@ -205,6 +218,10 @@ def update(arguments):
                     query_history=[dict(row, dialect=source.dialect) for row in source.query_history()],
                 )
             catalog = store.query_catalog(context["run_id"], context["actor"], arguments["connection"])
+            if not catalog:
+                raise ValueError(
+                    "No table context has been retrieved for this run and connection. Call ontology_search with action='retrieve' and a query, or action='table' and the stored table ID, before executing SQL."
+                )
             validated = validate_sql(
                 arguments["sql"],
                 catalog,
@@ -282,12 +299,13 @@ async def _index_evidence(store, source_id, embedder):
     rows = store.evidence_chunks(source_id)
     for offset in range(0, len(rows), 20):
         batch = rows[offset : offset + 20]
+        store.index_evidence(batch)
         if embedder:
             vectors = await embedder.embed_batch([row["text"] for row in batch])
             if len(vectors) != len(batch):
                 raise ValueError("embedding service returned an incorrect batch size")
             batch = [dict(row, vector=vector) for row, vector in zip(batch, vectors)]
-        store.index_evidence(batch, model=_embedding_space(embedder) if embedder else None)
+            store.index_evidence(batch, model=_embedding_space(embedder))
 
 
 async def _index_semantics(store, value):
@@ -302,6 +320,14 @@ async def _index_semantics(store, value):
     embedder = _embedder() if objects else None
     if not embedder:
         return "lexical"
+    pending = []
+    for offset in range(0, len(objects), 100):
+        pending.extend(
+            store.embedding_candidates(
+                [obj["id"] for obj in objects[offset : offset + 100]], model=_embedding_space(embedder)
+            )
+        )
+    objects = pending
     for offset in range(0, len(objects), 20):
         batch = objects[offset : offset + 20]
         texts = [
@@ -497,7 +523,10 @@ async def run_tool(name, arguments):
             value = update(arguments)
             if arguments["action"] in {"compile", "define", "define_many", "extract", "model_import"}:
                 _, store = context_store()
-                value["retrieval_mode"] = await _index_semantics(store, value)
+                try:
+                    value["retrieval_mode"] = await _index_semantics(store, value)
+                except Exception as exc:
+                    value.update(retrieval_mode="lexical", indexing_complete=False, indexing_error=type(exc).__name__)
                 if arguments["action"] in {"compile", "define_many"}:
                     value["objects"] = [
                         {"id": obj["id"], "kind": obj["kind"], "name": obj["data"]["name"], "revision": obj["revision"]}
@@ -511,5 +540,12 @@ async def run_tool(name, arguments):
     except (ValueError, KeyError, TypeError, PermissionError, RuntimeError, OSError, sqlite3.Error) as exc:
         return ToolResult(
             ok=False,
-            content=json.dumps({"error": str(exc), "operation_applied": False, "publication_confirmed": False}),
+            content=json.dumps(
+                {
+                    "error": str(exc),
+                    "operation_applied": None,
+                    "inspect_before_retry": True,
+                    "publication_confirmed": False,
+                }
+            ),
         )

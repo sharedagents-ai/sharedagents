@@ -83,6 +83,25 @@ def test_unknown_retrieval_is_not_sql_authorization(model, source):
         )
 
 
+def test_explicit_table_inspection_counts_as_retrieval_and_ids_are_consistent(model, source):
+    model.compile_catalog("sales", source.catalog(), actor="test-user")
+    table = next(t for t in model.model_list(kind="table") if t["data"]["name"] == "orders")
+    assert model.get(table["id"]) == model.model_get(table["id"])
+    model.begin("run", actor="test-user", question="Inspect orders", model="test-model", prompt_version="test")
+    with pytest.raises(PermissionError):
+        model.retrieve_table("run", "other-user", table["id"])
+    assert not model.retrieved_tables("run", "test-user")
+    assert model.retrieve_table("run", "test-user", table["id"])["columns"]
+    catalog = model.query_catalog("run", "test-user", "sales")
+    query = validate_sql(
+        "SELECT SUM(amount) FROM orders",
+        catalog,
+        dialect="sqlite",
+        retrieved=set(model.retrieved_tables("run", "test-user")),
+    )
+    assert source.run(query["sql"])["rows"] == [[150.0]]
+
+
 def test_reviewed_term_survives_compilation_and_cas_guards(model, source):
     model.compile_catalog("sales", source.catalog(), actor="test-user")
     term = model.model_list(kind="term")[0]
@@ -126,7 +145,9 @@ def test_import_round_trip_atomicity_and_untrusted_certification(model, source, 
 def test_semantic_vector_edit_invalidates_old_embedding(model):
     pytest.importorskip("sqlite_vec")
     first = model.model_put("term", {"name": "Turnover", "description": "Revenue"}, actor="editor")
+    assert model.embedding_candidates([first["id"]], model="test-space") == [first]
     model.model_embed([{"id": first["id"], "revision": first["revision"], "vector": [1, 0, 0]}], model="test-space")
+    assert model.embedding_candidates([first["id"]], model="test-space") == []
     assert model.model_search(vector=[1, 0, 0], model="test-space")[0]["object"]["id"] == first["id"]
     model.model_put(
         "term",
@@ -136,6 +157,13 @@ def test_semantic_vector_edit_invalidates_old_embedding(model):
         actor="editor",
     )
     assert model.model_search(vector=[1, 0, 0], model="test-space") == []
+    assert model.embedding_candidates([first["id"]], model="test-space")
+    with pytest.raises(ValueError):
+        model.model_embed(
+            [{"id": first["id"], "revision": model.model_get(first["id"])["revision"], "vector": [float("nan"), 0, 0]}],
+            model="test-space",
+        )
+    assert model.embedding_candidates([first["id"]], model="test-space")
 
 
 def test_nvidia_and_official_ossie_interchange(model, source, tmp_path):
@@ -302,3 +330,34 @@ def test_executed_query_charts_and_csv_do_not_run_or_invent_data():
         result_view(query, x="Revenue", y="Customer")
     with pytest.raises(ValueError, match="stored query"):
         result_csv({"kind": "term"})
+
+
+@pytest.mark.asyncio
+async def test_embedding_failure_is_explicit_and_does_not_claim_domain_rollback(model, monkeypatch):
+    import json
+
+    from sharedagents_research import native_tools
+
+    model.begin("run", actor="test-user", question="Define sales", model="test-model", prompt_version="test")
+    monkeypatch.setattr(
+        native_tools, "context_store", lambda **kwargs: ({"run_id": "run", "actor": "test-user"}, model)
+    )
+
+    class Unavailable:
+        provider, model, dims = "test", "test-model", 3
+
+        async def embed_batch(self, texts):
+            raise RuntimeError("Embedding service unavailable")
+
+    monkeypatch.setattr(native_tools, "_embedder", lambda: Unavailable())
+    result = await native_tools.run_tool(
+        "ontology_update",
+        {"action": "define", "kind": "term", "data": {"name": "Sales", "description": "Reported sales"}},
+    )
+    assert result.ok
+    value = json.loads(result.content)
+    assert value["indexing_complete"] is False and value["indexing_error"] == "RuntimeError"
+    assert value["retrieval_mode"] == "lexical"
+    assert model.model_get(value["id"])["data"]["name"] == "Sales"
+    assert model.model_search("Sales")
+    assert model.embedding_candidates([value["id"]], model=native_tools._embedding_space(Unavailable()))

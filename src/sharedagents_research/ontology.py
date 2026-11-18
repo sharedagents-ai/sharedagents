@@ -289,7 +289,7 @@ class Ontology(SemanticModel, ClaimPolicy):
             ).fetchone():
                 raise ValueError("source must have been captured in this research run")
             source = self._get(db, source_id)
-            local = {}
+            local, cardinalities = {}, {}
             objects = []
             semantic_ids = []
             for kind, items in (("entity", entities), ("concept", concepts)):
@@ -312,7 +312,7 @@ class Ontology(SemanticModel, ClaimPolicy):
                     base = {
                         "id": key,
                         "kind": kind,
-                        "name": external or label,
+                        "name": external or label.casefold(),
                         "type": kind if external else str(item.get("type", kind)),
                         "external_id": external,
                         "identity_status": "provisional",
@@ -339,6 +339,7 @@ class Ontology(SemanticModel, ClaimPolicy):
                     }
                     if proposal["cardinality"] not in {"one", "many"}:
                         raise ValueError("concept cardinality must be one or many")
+                    cardinalities[alias] = proposal["cardinality"]
                     definition_id = identity("definition", proposal)
                     self._put(
                         db,
@@ -349,7 +350,15 @@ class Ontology(SemanticModel, ClaimPolicy):
                     )
                     db.execute("INSERT OR IGNORE INTO ontology_definitions VALUES (?,?)", (key, definition_id))
                     term_key = identity("research-term", key)
-                    if self._model_get(db, term_key) is None:
+                    previous_term = self._model_get(db, term_key)
+                    # A stable preview is not a semantic adjudication. Retain
+                    # every definition separately; do not let random arrival
+                    # choose the default preview or overwrite curated meaning.
+                    if previous_term is None or (
+                        previous_term["origin"] == "research"
+                        and previous_term["certification"]["status"] != "certified"
+                        and definition_id < previous_term["data"].get("definition", definition_id)
+                    ):
                         self._model_put(
                             db,
                             semantic_index,
@@ -361,10 +370,12 @@ class Ontology(SemanticModel, ClaimPolicy):
                                 "research_object": key,
                                 "tables": [],
                                 "definition": definition_id,
+                                "definition_selection": "deterministic_provisional_preview",
                                 "cardinality": proposal["cardinality"],
                             },
                             actor=actor,
                             key=term_key,
+                            expected=previous_term["revision"] if previous_term else None,
                             origin="research",
                         )
                     semantic_ids.append(term_key)
@@ -393,8 +404,8 @@ class Ontology(SemanticModel, ClaimPolicy):
                     if not target or not isinstance(item.get("polarity", True), bool):
                         raise ValueError("relation object must bind an extracted node and polarity must be boolean")
                     value = {"ref": target, "polarity": item.get("polarity", True)}
-                    policy = self._model_get(db, identity("research-term", predicate))
-                    if policy["data"].get("cardinality") == "many":
+                    context["cardinality"] = cardinalities[item["predicate"]]
+                    if context["cardinality"] == "many":
                         context["relation_target"] = target
                 if item.get("modality"):
                     if item["modality"] not in {"actual", "planned", "expected", "possible", "rumored"}:
@@ -578,6 +589,8 @@ class Ontology(SemanticModel, ClaimPolicy):
     def get(self, key, *, offset=0, text_limit=None):
         with self.container.connection() as db:
             value = self._get(db, key)
+            if value is None:
+                value = self._model_get(db, key)
             if value is not None and text_limit is not None:
                 offset = max(0, int(offset))
                 text_limit = max(1, min(int(text_limit), 16000))
