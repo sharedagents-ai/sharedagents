@@ -167,6 +167,8 @@ docs = [
 # Test + lint toolchain — `pip install -e '.[dev]'`.
 dev = [
     "pytest>=8.0",
+    # scripts/check_website.py parses mkdocs.yml; also present via docs/vllm-router.
+    "pyyaml>=6.0",
     "pytest-asyncio>=0.23",
     "pytest-xdist>=3.5",
     "pytest-timeout>=2.3",
