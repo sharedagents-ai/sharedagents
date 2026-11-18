@@ -244,6 +244,8 @@ def test_concept_relationships_keep_multiple_targets_without_false_conflicts(sto
 
 
 def test_definition_previews_and_cardinality_converge_without_overwriting_refinement(tmp_path):
+    pytest.importorskip("SharedData.SQLite")
+
     def ingest(store, index):
         run = "definition-" + str(index)
         begin(store, run)
