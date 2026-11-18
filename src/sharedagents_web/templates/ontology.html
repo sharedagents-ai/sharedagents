@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="sharedagents-base" content="{{ base }}" />
+    <title>{{ site_title }} · Ontology</title>
+    <link
+      rel="stylesheet"
+      href="{{ base }}/static/style.css?v={{ asset_rev('style.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ base }}/static/menu.css?v={{ asset_rev('menu.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ base }}/static/agents.css?v={{ asset_rev('agents.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ base }}/static/ontology.css?v={{ asset_rev('ontology.css') }}"
+    />
+    {% include "_ui_zoom.html" %}
+  </head>
+  <body
+    class="monitor-body ontology-body"
+    data-ontology-role="{{ ontology_role }}"
+  >
+    {% set active = 'ontology' %}{% include "_menu.html" %}{% from "_menu.html"
+    import menu_button %}
+    <div id="ontology-app">
+      <header class="mon-header">
+        {{ menu_button() }}<a href="{{ base }}/" class="mon-logo"
+          >{{ site_title }}</a
+        >
+        <h1>Ontology</h1>
+        <span id="ontology-summary"></span>
+      </header>
+      <main class="ontology-main">
+        <p>
+          Research adds evidence and draft meaning. Review definitions and
+          mappings before certifying them.
+        </p>
+        <form id="ontology-search">
+          <label
+            >Search meaning
+            <input
+              id="ontology-query"
+              type="search"
+              placeholder="Business term, entity or calculation" /></label
+          ><button>Search</button
+          ><button id="ontology-refresh" type="button">All objects</button
+          ><button id="ontology-export" type="button">Export model</button>
+        </form>
+        <p id="ontology-status" role="status" aria-live="polite"></p>
+        <div class="ontology-workspace">
+          <aside>
+            <h2>Objects</h2>
+            <div id="ontology-list"></div>
+          </aside>
+          <section>
+            <h2>Relationships</h2>
+            <svg
+              id="ontology-graph"
+              viewBox="0 0 800 500"
+              role="img"
+              aria-label="Semantic relationships"
+            ></svg>
+            <article id="ontology-detail" hidden>
+              <h2 id="ontology-name"></h2>
+              <p id="ontology-certification"></p>
+              <form id="ontology-edit">
+                <label>Name <input id="ontology-edit-name" required /></label
+                ><label
+                  >Description
+                  <textarea
+                    id="ontology-description"
+                    rows="4"
+                  ></textarea></label
+                ><label
+                  >Aliases, separated by commas
+                  <input id="ontology-aliases" /></label
+                ><button>Save draft</button>
+              </form>
+              <div id="ontology-review">
+                <label>Review reason <input id="ontology-reason" /></label
+                ><button id="ontology-certify" type="button">
+                  Certify this revision</button
+                ><button id="ontology-unreview" type="button">
+                  Return to draft
+                </button>
+              </div>
+              <details>
+                <summary>Mappings and provenance</summary>
+                <pre id="ontology-data"></pre>
+              </details>
+              <h3>Revision history</h3>
+              <ol id="ontology-history"></ol>
+            </article>
+          </section>
+        </div>
+      </main>
+    </div>
+    <script
+      src="{{ base }}/static/nav.js?v={{ asset_rev('nav.js') }}"
+      defer
+    ></script>
+    <script
+      src="{{ base }}/static/ontology.js?v={{ asset_rev('ontology.js') }}"
+      defer
+    ></script>
+  </body>
+</html>

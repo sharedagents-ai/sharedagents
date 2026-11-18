@@ -3,12 +3,20 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
 from itertools import permutations
 
 import pytest
 
 from sharedagents_research.native_tools import publication_required, runtime_context
-from sharedagents_research.ontology import external_identity, grounded_quote, identity, open_ontology
+from sharedagents_research.ontology import (
+    canonical_publisher,
+    canonical_url,
+    external_identity,
+    grounded_quote,
+    identity,
+    open_ontology,
+)
 
 
 @pytest.fixture
@@ -167,6 +175,80 @@ def test_correction_published_earlier_cannot_erase_later_report(store):
     assert store.status()["objects"]["claim"] == 1
 
 
+def test_hosted_publishers_are_separate_and_unverified_dates_do_not_override(store):
+    assert canonical_publisher("https://x.com/author_one/status/1") != canonical_publisher(
+        "https://x.com/author_two/status/2"
+    )
+    assert canonical_publisher("https://x.com/i/status/1") is None
+    assert canonical_publisher("https://t.co/short") is None
+    assert (
+        canonical_publisher("https://raw.githubusercontent.com/example/project/main/file")
+        == "github.com/example/project"
+    )
+    begin(store)
+    _, first = observation(store)
+    text = "Acme's capacity is 120 units."
+    source = store.capture(
+        "run-1",
+        "research-user",
+        url="https://example.com/new",
+        text=text,
+        published_at="2026-01-03T12:00:00Z",
+        published_at_verified=False,
+    )
+    with pytest.raises(ValueError, match="correction requires"):
+        store.extract(
+            "run-1",
+            "research-user",
+            source["id"],
+            entities=[{"key": "a", "name": "Acme", "type": "company", "quote": text}],
+            concepts=[{"key": "c", "name": "capacity", "quote": text}],
+            claims=[
+                {
+                    "subject": "a",
+                    "predicate": "c",
+                    "value": 120,
+                    "unit": "units",
+                    "quote": text,
+                    "corrects": first["claims"][0],
+                }
+            ],
+        )
+
+
+def test_concept_relationships_keep_multiple_targets_without_false_conflicts(store):
+    begin(store)
+    text = "Sanctions increase oil prices and freight costs."
+    source = store.capture("run-1", "research-user", url="https://example.com/relation", text=text)
+    result = store.extract(
+        "run-1",
+        "research-user",
+        source["id"],
+        entities=[],
+        concepts=[
+            {"key": "s", "name": "Sanctions", "quote": "Sanctions"},
+            {"key": "o", "name": "oil prices", "quote": "oil prices"},
+            {"key": "f", "name": "freight costs", "quote": "freight costs"},
+            {"key": "r", "name": "increase", "type": "relation", "cardinality": "many", "quote": "increase"},
+        ],
+        claims=[
+            {"subject": "s", "predicate": "r", "object": target, "quote": text, "modality": "actual"}
+            for target in ("o", "f")
+        ],
+    )
+    receipt = finish(store, source)
+    assert len(receipt["states"]) == 2
+    assert all(store.get(revision)["status"] == "reported" for revision in receipt["states"].values())
+    obj = store.get(result["claims"][0])["object"]
+    assert store.describe(obj)["states"]
+
+
+@pytest.mark.parametrize("value", [None, [], {}, 1, True])
+def test_malformed_urls_are_validation_errors(value):
+    with pytest.raises(ValueError):
+        canonical_url(value)
+
+
 def test_correction_chain_converges_for_every_arrival_order(store, tmp_path):
     begin(store)
     _, first = observation(store, index=1)
@@ -195,6 +277,63 @@ def test_event_order_uses_utc_and_preserves_ties(store):
     assert events[1]["ordering"] == "undetermined" and len(events[1]["claims"]) == 2
 
 
+def test_popular_fact_has_bounded_snapshots_and_exact_historical_pages(store):
+    from sharedagents_research.ontology import encoded
+
+    begin(store)
+    text = "Acme capacity is 100 units."
+    source = store.capture(
+        "run-1", "research-user", url="https://example.com/report", text=text, published_at="2026-01-01T11:00:00Z"
+    )
+    base = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+    def add(run, start, stop):
+        for index in range(start, stop):
+            store.extract(
+                run,
+                "research-user",
+                source["id"],
+                entities=[{"key": "a", "name": "Acme", "type": "company", "quote": text}],
+                concepts=[{"key": "c", "name": "capacity", "quote": text}],
+                claims=[
+                    {
+                        "subject": "a",
+                        "predicate": "c",
+                        "value": 100,
+                        "unit": "units",
+                        "quote": text,
+                        "event_at": (base + timedelta(seconds=index)).isoformat(),
+                    }
+                ],
+            )
+
+    add("run-1", 0, 120)
+    old = finish(store, source)
+    fact, revision = next(iter(old["states"].items()))
+    old_state = store.get(revision)
+    begin(store, "run-2")
+    store.capture("run-2", "research-user", url=source["url"], text=text, published_at=source["published_at"])
+    add("run-2", 120, 600)
+    new = finish(store, source, "run-2")
+    current = store.get(new["states"][fact])
+    assert current["evidence_count"] == 600 and len(current["evidence"]) == 100
+    assert current["alternatives"][0]["claim_count"] == 600
+    assert current["alternatives"][0]["independent_contents"] == 1
+    assert current["examples_truncated"] and len(encoded(current)) < len(encoded(old_state)) + 1000
+    records, cursor = [], ""
+    while True:
+        page = store.fact_evidence(fact, after=cursor, limit=37, revision=revision)
+        if not page:
+            break
+        records.extend(page)
+        cursor = page[-1]["claim"]["id"]
+    assert len(records) == 120 and all(row["status"] == "active" for row in records)
+    begin(store, "run-3")
+    observation(store, "run-3", index=2, value=120, corrects=records[0]["claim"]["id"])
+    assert store.fact_evidence(fact, revision=revision)[0]["status"] == "active"
+    assert store.fact_evidence(fact)[0]["status"] in {"active", "superseded"}
+
+
 def test_ontology_reopens_and_users_have_separate_stores(store, tmp_path):
     begin(store)
     source, _ = observation(store)
@@ -221,6 +360,9 @@ def test_actor_is_checked_and_fake_citations_are_rejected(store):
 
 
 def test_publication_guard_requires_successful_finish_in_this_turn():
+    from sharedagents_agent.agents.agent import _turn_error_is_retryable
+
+    assert not _turn_error_is_retryable("ontology_publication")
     call = {"id": "finish", "name": "ontology_update", "arguments": {"action": "finish"}}
     assert publication_required("research", [], [])
     assert publication_required("research", [call], [{"id": "finish", "ok": False}])
@@ -253,6 +395,10 @@ def test_runtime_context_is_pinned_to_authenticated_user(monkeypatch, tmp_path):
     assert first["run_id"] == identity(first["scope"], "test-session", "test-turn")
     monkeypatch.setenv("SHAREDAGENTS_ACCESS_PIN", "invalid")
     with pytest.raises(PermissionError, match="malformed"):
+        runtime_context()
+    monkeypatch.delenv("SHAREDAGENTS_ACCESS_PIN")
+    monkeypatch.setenv("SHAREDAGENTS_SESSION_ID", "../invalid")
+    with pytest.raises(PermissionError, match="identity is invalid"):
         runtime_context()
 
 

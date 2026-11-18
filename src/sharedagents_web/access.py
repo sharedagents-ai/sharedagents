@@ -600,6 +600,10 @@ USER_ENDPOINTS: dict[str, Rule] = {
     "users.api_user_directory": _OPEN,
     "tasks.tasks_page": _OPEN,
     "tasks.api_tasks_list": _OPEN,
+    "ontology.page": _OPEN,  # scoped by authenticated workspace membership
+    "ontology.read": _OPEN,
+    "ontology.write": _OPEN,
+    "ontology.research": _OPEN,  # native research grant checked by the handler
 }
 
 

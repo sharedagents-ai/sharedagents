@@ -14,6 +14,8 @@ def configure_research(home, *, backend_python=None):
     from sharedagents_agent.agent_profiles import RESEARCH, profile_agents_template_path
 
     home = Path(home)
+    if backend_python and os.path.dirname(str(backend_python)):
+        backend_python = os.path.abspath(os.path.expanduser(str(backend_python)))
     path = home / "config.json"
     config = json.loads(path.read_text()) if path.exists() else {"name": "research"}
     if config.get("engine", "local_llm") != "local_llm":
