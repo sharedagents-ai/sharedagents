@@ -16,7 +16,11 @@ import httpx
 
 from . import audio
 from .config import RealtimeConfig, Stage
-from .noise import looks_like_noise, parse_languages, sanitize_transcript  # noqa: F401  (re-export — session.py imports both from cascade)
+from .noise import (  # noqa: F401  (re-export — session.py imports both from cascade)
+    looks_like_noise,
+    parse_languages,
+    sanitize_transcript,
+)
 
 _LOG = logging.getLogger("sharedagents.realtime.cascade")
 

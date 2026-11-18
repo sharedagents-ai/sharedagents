@@ -5,7 +5,7 @@ the corpus operators feed back into fine-tune SFT pipelines, AWQ
 calibration runs, and crash-debug forensics. They MUST NOT carry
 credentials in the clear — once a session JSON has been generated,
 it gets copied around: into training datasets, into shared
-diagnostic archives, into wiki ingestion. A leaked OpenAI key,
+diagnostic archives, into research ingestion. A leaked OpenAI key,
 GitHub PAT, AWS access key, or operator OAuth bearer there is a
 real-world incident.
 

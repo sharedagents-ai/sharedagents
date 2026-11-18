@@ -77,7 +77,7 @@ class AgentProfile:
     # write whose target lands inside ANY deny-root is REFUSED even when it also
     # falls inside an allowed root — the way an implementer (``build``) writes
     # source anywhere in the repo (``write_roots=(".",)``) EXCEPT the
-    # governance books other agents own (plan/, requirements/, spec/, wiki/), so
+    # governance books other agents own (plan/, requirements/, spec/), so
     # it can never clobber them. ``None`` /
     # empty ⟹ nothing denied.
     write_denyroots: tuple[str, ...] | None = None
@@ -528,7 +528,14 @@ GENERAL = AgentProfile(
     opencode_mode="subagent",
 )
 
-RESEARCH_TOOLS: tuple[str, ...] = tuple(
+RESEARCH_TOOLS: tuple[str, ...] = (
+    "ontology_search",
+    "ontology_source",
+    "ontology_update",
+    "websearch",
+    "question",
+    "todowrite",
+) + tuple(
     "mcp__knowledge__" + name
     for name in (
         "coverage",
@@ -580,7 +587,7 @@ RESEARCH = AgentProfile(
     name="research",
     mode="auto",
     write_roots=(),
-    description="Intelligence layer over the SharedData ontology: evidence, ingestion actions, market impact, scenarios, forecasts.",
+    description="Research with automatically accumulated ontology evidence, entities, concepts, temporal claims and cited answers on SharedData.",
     tools_allowlist=RESEARCH_TOOLS,
     tools_allowlist_strict=True,
     skill_allowlist=(),

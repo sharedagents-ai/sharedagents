@@ -205,7 +205,7 @@ def _build_parallel_groups(
 #      arguments to ``delegate_agent`` / ``acp_call`` get distinct keys
 #      because their state files are namespaced by target name.
 
-_PARALLEL_UNSAFE_TOOLS: frozenset = frozenset({"compact_context"})
+_PARALLEL_UNSAFE_TOOLS: frozenset = frozenset({"compact_context", "ontology_update"})
 
 
 # --- tool runner subprocess ---------------------------------------------
@@ -399,6 +399,7 @@ async def _default_run_tool(
     env["PYTHONPATH"] = package_parent + (os.pathsep + existing if existing else "")
     env["PYTHONUNBUFFERED"] = "1"
     env["SHAREDAGENTS_SESSION_ID"] = session_id
+    env["SHAREDAGENTS_TURN_ID"] = str(getattr(turn, "id", "") or "")
     # ACP-supplied MCP servers live in the parent's in-memory registry;
     # the runner runs in THIS fresh subprocess and can't see it. Serialize
     # this session's ACP servers into env so the runner can overlay them

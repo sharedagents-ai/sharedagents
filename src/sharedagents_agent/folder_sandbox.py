@@ -104,6 +104,11 @@ UNCONFINED_TOOLS = frozenset(
         "x_tweets",
         "meeting_search",
         "decision",
+        # First-party state capabilities: no model-supplied filesystem paths.
+        # The ontology backend derives its private namespace from pinned grants.
+        "ontology_search",
+        "ontology_source",
+        "ontology_update",
     }
 )
 

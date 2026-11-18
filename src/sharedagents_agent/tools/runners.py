@@ -18,9 +18,11 @@ from __future__ import annotations
 import asyncio
 import os
 from collections.abc import Callable
+from functools import partial
 from typing import Any
 
 from sharedagents_core.cwdutil import safe_getcwd
+from sharedagents_research.native_tools import run_tool as run_ontology_tool
 
 from .impl._utils import *  # noqa: F403  (re-export)
 from .impl._utils import (
@@ -133,6 +135,9 @@ _SYNC_RUNNERS: dict[str, Callable[[dict[str, Any]], ToolResult]] = {
 }
 
 _ASYNC_RUNNERS: dict[str, Callable[[dict[str, Any]], asyncio.Future[ToolResult]]] = {
+    "ontology_search": partial(run_ontology_tool, "ontology_search"),
+    "ontology_source": partial(run_ontology_tool, "ontology_source"),
+    "ontology_update": partial(run_ontology_tool, "ontology_update"),
     "bash": run_exec_async,
     "BashOutput": run_monitor_read_async,
     "KillShell": run_monitor_stop_async,

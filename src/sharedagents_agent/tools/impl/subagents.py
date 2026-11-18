@@ -272,7 +272,7 @@ def _shim_agent_canonical(args, *, on_delta=None, on_event=None):
     subagent_type = str(args.get("subagent_type") or "").strip().lower()
     # Web research needs no reroute: `general` (mode=auto, carries the mcp__web__*
     # web tools) handles it natively now that the dedicated `research` profile is
-    # retired. The `research-wiki` skill remains invokable on demand for wiki builds.
+    # retired. Native research publishes through its ontology tools.
     # Single-phase specialist reroute (the generalisation of the web-research hook
     # above). When the orchestrator falls back to a GENERIC agent (explore/general)
     # for a task that unambiguously asks for ONE specialist deliverable
