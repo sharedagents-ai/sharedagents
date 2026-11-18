@@ -15,7 +15,7 @@
 # so the relocated subpackages are discovered with no include-list change
 # and a new sibling package is still picked up without editing this file.
 #
-# Runtime deps are kept byte-for-byte in sync with src/requirements.txt
+# Lean core dependencies are kept aligned with src/requirements.txt
 # (the launcher still sha1's that file for its venv-bootstrap path).
 
 [build-system]
@@ -27,7 +27,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sharedagents"
-version = "1.0.0"
+version = "1.0.2"
 description = "Local AI agent platform with full under-the-hood visibility — multi-agent orchestrator, web UI, channels, pluggable engines."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -185,7 +185,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/sharedagents-ai/sharedagents"
-Documentation = "https://docs.sharedagents.ai/"
+Documentation = "https://sharedagents.ai/docs/"
 Repository = "https://github.com/sharedagents-ai/sharedagents"
 Issues = "https://github.com/sharedagents-ai/sharedagents/issues"
 Changelog = "https://github.com/sharedagents-ai/sharedagents/blob/main/CHANGELOG.md"
@@ -246,9 +246,6 @@ include = ["sharedagents", "sharedagents_*"]
 #     Screenshots were moved out to docs/ to keep the wheel lean.
 "sharedagents_web" = ["templates/**/*", "static/**/*", "data/*", "README.md"]
 "sharedagents_vllm" = ["data/*", "service/*"]
-
-[tool.setuptools.exclude-package-data]
-sharedagents_web = ["static/task_card_collapsed.png", "static/task_card_expanded.png"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

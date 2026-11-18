@@ -18,7 +18,7 @@ REPO = Path(__file__).resolve().parents[1]
 SRC = REPO / "src"
 
 #: Directories scanned in full, plus every tracked file at the repo root.
-SCAN_DIRS = ("src", "tests", "docs", "scripts")
+SCAN_DIRS = ("src", "tests", "docs", "scripts", "examples", "website", ".github")
 
 # Scan every file, including extensionless assets and files in vendor
 # directories. Decode with replacement so one non-UTF8 byte cannot hide a
@@ -72,14 +72,6 @@ PATTERNS: dict[str, re.Pattern[str]] = {
 _EXEMPTIONS: dict[str, set[str]] = {
     # This file deliberately embeds one example of every pattern.
     "tests/test_no_local_references.py": {"*"},
-    # Exercises private-address/local-host detection itself; needs real
-    # RFC1918 and .lan/.internal literals as inputs.
-    "tests/test_models_page_local_llms.py": {
-        "private IPv4 (192.168/16)",
-        "private IPv4 (10/8)",
-        "private IPv4 (172.16/12)",
-        "internal domain",
-    },
 }
 
 

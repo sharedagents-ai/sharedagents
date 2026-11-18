@@ -1,59 +1,54 @@
-# sharedagents-web
+# SharedAgents WebUI
 
-A lightweight, **localhost-only** OpenWebUI-style browser frontend for the
-sharedagents agents — the same conversations as the sharedagents TUI, in a browser.
+The browser interface is packaged as `sharedagents_web`, including its templates
+and static assets. It shares gateway conversations with the terminal and
+messaging interfaces. Install it with `python -m pip install "sharedagents[web]"`.
 
-- Binds `127.0.0.1:8110` only (non-loopback `SHAREDAGENTS_WEB_HOST` is rejected).
-- Auth is fail-closed via the dashboard verify-token; sessions are scoped
-  per user. Loads **zero** external/CDN resources (all JS/CSS vendored under
-  `static/vendor/`), with a strict Content-Security-Policy.
-- Proxies to the sharedagents gateway at `SHAREDAGENTS_GATEWAY_URL` (default
-  `http://127.0.0.1:8100`); sessions persist under
-  `SHAREDAGENTS_SESSION_DIR` (default `~/.sharedagents/sessions`).
+The WebUI defaults to `127.0.0.1:8110` and proxies the gateway at
+`SHAREDAGENTS_GATEWAY_URL` (default `http://127.0.0.1:8100`). Native browser
+accounts and revocable session cookies are the primary authentication path.
+External authentication is an optional, explicit deployment setting. Access
+checks apply to API routes and conversation ownership.
+
+Web session/authentication state lives under `<runtime-home>/web/` by default;
+`SHAREDAGENTS_WEB_DB` can override the database location. Canonical conversation
+history is managed by the gateway/session packages. All of this runtime state
+is private and belongs outside the source tree.
 
 ## Run
 
-Managed via the `sharedagents web` CLI (mirrors `sharedagents gateway` / `sharedagents telegram`):
+For a configured runtime, use the foreground stack launcher:
 
 ```bash
-sharedagents web start            # daemonize (loopback :8110); bootstraps web/venv + SHAREDAGENTS_WEB_SECRET on first run
-sharedagents web status           # pid / uptime / url
-sharedagents web logs             # tail -f ~/.sharedagents/logs/web.log
-sharedagents web restart
-sharedagents web stop
-sharedagents web install-service  # install + enable + start the sharedagents-web systemd USER unit (boot-persistent via linger)
-
-sharedagents web start --debug            # SHAREDAGENTS_WEB_DEBUG=1 — skip dashboard-JWT auth (local use)
-sharedagents web install-service --debug  # bake debug (no-auth) into the systemd unit
+python -m sharedagents.serve
 ```
 
-`start` auto-creates `web/venv` (flask + requests) and generates/persists
-`SHAREDAGENTS_WEB_SECRET` to `~/.sharedagents/.env` (also read by the systemd unit's
-`EnvironmentFile`), so sessions survive restarts. The unit
-(`~/.config/systemd/user/sharedagents-web.service`) orders itself `After` the
-gateway. Bind is **loopback-only** `127.0.0.1:8110`.
+For a standalone WebUI process, use `sharedagents-web` or
+`python -m sharedagents_web`. Those entry points generate or reuse a random
+`SHAREDAGENTS_WEB_SECRET` before importing the server. Create a browser account
+with `sharedagents-web --create-user user@example.com`; the command prompts
+for its password.
 
-Or run it standalone (what the CLI does under the hood):
+The `sharedagents web` subcommands also manage the web process:
 
 ```bash
-cd web
-python -m venv venv && venv/bin/pip install -r requirements.txt   # first time
-SHAREDAGENTS_WEB_SECRET=$(openssl rand -hex 32) venv/bin/python server.py
+sharedagents web start
+sharedagents web status
+sharedagents web logs
 ```
 
-Then open http://127.0.0.1:8110/ (intended to be embedded as a dashboard
-iframe). `venv/` is gitignored.
+`stop`, `restart`, and `install-service` are lifecycle operations for an existing
+installation. Inspect the target instance and its service manager before using
+them. See [deployment](../../docs/guides/deployment.md) and
+[security](../../SECURITY.md) for container networking, native login, proxy trust,
+and the limited loopback debug mode.
 
-For a reverse-proxied deployment, set `SHAREDAGENTS_WEB_BASE_URL` to the canonical
-browser-facing origin and path, for example:
+## Public URL
 
-```bash
-SHAREDAGENTS_WEB_BASE_URL=https://example.com/sharedagentsweb
-```
-
-The URL is used by the Web UI and authenticated artifact API to generate
-attachment links. Its path also supplies `SHAREDAGENTS_WEB_BASE_PATH` when that
-variable is omitted; setting the path explicitly remains supported.
+For a reverse-proxied installation, set `SHAREDAGENTS_WEB_BASE_URL` to the
+browser-facing origin and path, for example `https://example.com/assistant`.
+This URL is used for authenticated artifact links. Its path also supplies
+`SHAREDAGENTS_WEB_BASE_PATH` when the latter is omitted.
 
 ## Feature surface & slash commands
 
@@ -86,7 +81,7 @@ original. Image previews may be resized for the model; the original upload is
 preserved in full. Uploading a file does not execute it.
 
 All sharedagents slash commands run through the gateway's shared command runtime
-(`sharedagents_core.command_runtime`) — the web frontend carries **zero** command
+(`sharedagents_command.command_runtime`) — the web frontend carries **zero** command
 logic. Type `/` for the command palette/autocomplete; results render
 generically by `kind` (text / keyvals / list / table / checklist / board /
 detail), and `actions` (buttons) echo a command back to the backend. Chat and
@@ -112,9 +107,7 @@ interaction is TUI-specific presentation.
 
 The Models router view reads `hardware_inventory.json` from `SHAREDAGENTS_HOME`
 (default `~/.sharedagents`). Set `SHAREDAGENTS_HARDWARE_INVENTORY` in the sharedagents `.env`
-to use another path. Installations using the former `~/src/hardware_inventory.json`
-location must set this override or move the file into their sharedagents home.
-A missing or unreadable inventory leaves router discovery available without
+to use another path. A missing or unreadable inventory leaves router discovery available without
 inventory GPU details. Each host entry may provide a `label`; otherwise its
 short hostname is used. Keep inventory files and deployment labels outside
 the repository.

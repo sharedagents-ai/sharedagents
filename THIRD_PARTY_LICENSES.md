@@ -43,7 +43,7 @@ to download them from the upstream
 `<sharedagents home>/voice-models/` (`~/.sharedagents/voice-models/` by
 default; every file SHA-256 verified). The fetch is an explicit
 opt-in; the MIT license of this package is unaffected. See
-`docs/voice-models.md`.
+`docs/guides/voice-models.md`.
 
 ## License texts
 

@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Questions and setup help
+    url: https://github.com/sharedagents-ai/sharedagents/discussions
+    about: Ask usage and configuration questions in Discussions.
   - name: Security vulnerability
     url: https://github.com/sharedagents-ai/sharedagents/security/advisories/new
     about: Report security issues privately — do NOT open a public issue.

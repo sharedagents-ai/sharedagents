@@ -16,8 +16,8 @@ repos:
         pass_filenames: false
         always_run: true
       - id: forbidden-patterns
-        name: no private IPs / forge URLs / keys (src, docs, scripts)
-        entry: python scripts/check_forbidden_patterns.py src docs scripts
+        name: no private IPs / forge URLs / keys in public source
+        entry: python scripts/check_forbidden_patterns.py src docs scripts examples website .github
         language: system
         pass_filenames: false
         always_run: true

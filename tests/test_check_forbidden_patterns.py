@@ -3,6 +3,8 @@
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 _SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "check_forbidden_patterns.py"
 
 
@@ -41,3 +43,43 @@ def test_accented_term_matches_decomposed_text(tmp_path):
     assert not mod.violations(b"zephyrine")
     # Reserved example URLs stay exempt, as they are for ASCII terms.
     assert not mod.violations("see https://example.com/zéphyrine for a placeholder".encode())
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "ghp_" + "x" * 36,
+        "github_pat_" + "x" * 82,
+        "pypi-" + "x" * 120,
+        "sk-" + "x" * 48,
+        "sk-proj-" + "x" * 80,
+        "sk-ant-api03-" + "x" * 80,
+        "AIza" + "x" * 35,
+        "AKIA" + "X" * 16,
+        "https://example.com/?token=" + "pypi-" + "x" * 120,
+        ".".join(["100", "64", "1", "2"]),
+        ".".join(["100", "127", "255", "254"]),
+        ".".join(["node", "tail-example", "ts", "net"]),
+    ],
+)
+def test_release_scan_rejects_credentials_and_private_overlay_addresses(value, tmp_path, capsys):
+    mod = _load()
+    target = tmp_path / "asset.txt"
+    target.write_text(value)
+    assert mod.main([str(target)]) == 1
+    assert value not in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "sk-summary-model-label",
+        "sk-your-key",
+        "user@example.com",
+        "http://203.0.113.10/v1",
+        ".".join(["100", "63", "255", "255"]),
+        ".".join(["100", "128", "0", "1"]),
+    ],
+)
+def test_release_scan_keeps_placeholders_and_public_address_boundaries(value):
+    assert not _load().violations(value.encode())

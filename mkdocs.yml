@@ -1,7 +1,6 @@
 site_name: SharedAgents
 site_description: Local AI agent platform with full under-the-hood visibility.
-# Placeholder until the docs domain is live.
-site_url: https://docs.sharedagents.ai/
+site_url: https://sharedagents.ai/docs/
 repo_url: https://github.com/sharedagents-ai/sharedagents
 repo_name: sharedagents-ai/sharedagents
 edit_uri: edit/main/docs/
@@ -37,17 +36,30 @@ hooks:
   - scripts/mkdocs_hooks.py
 nav:
   - Overview: index.md
-  - Agents:
-    - Async delegation waves: delegation-waves.md
-    - Decision models: decision.md
-    - Knowledge-store research: research-workflow.md
-    - Pi RPC engine: pi-rpc.md
-  - Dev tab:
-    - Forge (Gitea or GitHub): forge.md
-  - Models:
-    - Short model names: model-catalogue-aliases.md
-  - Voice:
-    - Wake-word models: voice-models.md
+  - Getting started:
+    - Installation: getting-started/installation.md
+    - Configuration: getting-started/configuration.md
+    - Interface tour: getting-started/interface-tour.md
+  - Guides:
+    - Deployment: guides/deployment.md
+    - Troubleshooting: guides/troubleshooting.md
+    - Model parameters: guides/model-parameters.md
+    - Sampling: guides/sampling.md
+    - Short model names: guides/model-catalogue-aliases.md
+    - Amazon Bedrock: guides/bedrock.md
+    - WhatsApp: guides/whatsapp.md
+    - Voice models: guides/voice-models.md
+    - Memory maintenance: guides/memory.md
+    - Async delegation: guides/delegation-waves.md
+    - Decision models: guides/decision.md
+    - Knowledge-store research: guides/research-workflow.md
+    - Pi RPC engine: guides/pi-rpc.md
+    - Forge integration: guides/forge.md
+  - Contributing:
+    - Development setup: development/setup.md
+    - Architecture: development/architecture.md
+    - Testing: development/testing.md
+    - Maintainer guide: development/maintaining.md
 markdown_extensions:
   - admonition
   - attr_list

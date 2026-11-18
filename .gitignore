@@ -59,8 +59,17 @@ coverage.xml
 
 # Environments
 .env
+.env.*
+!.env.example
 secrets.env
 **/secrets.env
+.pypirc
+*.pem
+*.key
+*.sqlite
+*.sqlite3
+*.db
+*.log
 .venv
 env/
 venv/
@@ -86,6 +95,11 @@ dmypy.json
 
 # sharedagents prototype runtime state
 .sharedagents/
+/config.json
+/agents/
+/sessions/
+/logs/
+/artifacts/
 
 # Local web runtime state when web/server.py is launched from the repo.
 web/sessions.db

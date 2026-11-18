@@ -4,7 +4,7 @@ The session cost cap is the real limit, but two concurrent dispatchers read
 the same "remaining" figure before either child has spent anything, so a wave
 of frontier children can over-commit the budget. This module holds a
 short-lived reservation per child/wave in a per-parent JSON file, guarded by
-an ``fcntl`` lock: the second dispatcher sees the first one's claim and is
+an exclusive platform lock: the second dispatcher sees the first one's claim and is
 refused.
 
 A reservation is admission control, not a spend cap. Actual spend still lands
@@ -16,7 +16,6 @@ pruned so a crashed runner cannot wedge admission forever.
 from __future__ import annotations
 
 import contextlib
-import fcntl
 import json
 import os
 import time
@@ -25,6 +24,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+from sharedagents_core.oscompat import file_lock
 
 DEFAULT_TTL_S = 6 * 3600
 
@@ -54,12 +55,8 @@ def _path(parent_sid: str, sessions_dir: Any = None) -> Path:
 def _locked(path: Path):
     path.parent.mkdir(parents=True, exist_ok=True)
     lock = path.with_suffix(path.suffix + ".lock")
-    with open(lock, "a+") as fh:
-        fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
-        try:
-            yield
-        finally:
-            fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+    with open(lock, "a+") as fh, file_lock(fh):
+        yield
 
 
 def _load(path: Path, *, now: float, ttl_s: int) -> dict[str, dict[str, Any]]:

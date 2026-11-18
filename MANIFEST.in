@@ -3,6 +3,8 @@
 prune tests
 prune plan
 prune docs
+prune website
+prune examples
 prune hooks
 prune wiki
 prune bench

@@ -1,0 +1,10 @@
+{
+  "models": [
+    {
+      "alias": "local-example",
+      "baseUrl": "http://127.0.0.1:8000/v1",
+      "id": "replace-with-served-model-id",
+      "backend": "vllm"
+    }
+  ]
+}
