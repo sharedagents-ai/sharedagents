@@ -24,8 +24,12 @@ def main() -> None:
         parser.error("--out must be a subdirectory of build/")
     output.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix="website-stage-", dir=build_root))
-    for name in ("index.html", "styles.css", "app.js"):
+    for name in ("index.html", "styles.css", "app.js", "404.html"):
         shutil.copyfile(HERE / name, staging / name)
+    installer = ROOT / "install.sh"
+    if not installer.is_file():
+        parser.error(f"missing installer source: {installer}")
+    shutil.copyfile(installer, staging / "install.sh")
     shutil.copytree(HERE / "assets", staging / "assets")
     shutil.copytree(ROOT / "docs/assets/demo", staging / "assets/demo")
     subprocess.run(

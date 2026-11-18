@@ -10,12 +10,41 @@ and ``example.com`` are the placeholders to use instead.
 from __future__ import annotations
 
 import re
+import subprocess
 from pathlib import Path
 
 import pytest
 
 REPO = Path(__file__).resolve().parents[1]
 SRC = REPO / "src"
+
+
+def _tracked_ignored_files(repo: Path) -> list[str]:
+    result = subprocess.run(
+        ["git", "ls-files", "--cached", "--ignored", "--exclude-standard", "-z"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        encoding="utf-8",
+    )
+    return [name for name in result.stdout.split("\0") if name]
+
+
+def test_public_source_has_no_tracked_ignored_files():
+    if not (REPO / ".git").exists():
+        pytest.skip("requires a Git checkout")
+    assert not _tracked_ignored_files(REPO), "Public source includes tracked files excluded by .gitignore"
+
+
+def test_tracked_ignored_check_detects_force_added_operator_configuration(tmp_path):
+    subprocess.run(["git", "init", "--quiet", "--initial-branch=scope-test"], cwd=tmp_path, check=True)
+    (tmp_path / ".gitignore").write_text("deploy/\n", encoding="utf-8")
+    path = tmp_path / "deploy/website/nginx.conf"
+    path.parent.mkdir(parents=True)
+    path.write_text("# Synthetic operator configuration\n", encoding="utf-8")
+    subprocess.run(["git", "add", "--force", "--", "deploy/website/nginx.conf"], cwd=tmp_path, check=True)
+    assert _tracked_ignored_files(tmp_path) == ["deploy/website/nginx.conf"]
+
 
 #: Directories scanned in full, plus every tracked file at the repo root.
 SCAN_DIRS = ("src", "tests", "docs", "scripts", "examples", "website", ".github")

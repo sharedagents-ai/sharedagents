@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - "website/**"
+      - "install.sh"
+      - "tests/test_website_publication.py"
       - "docs/**"
       - "scripts/check_website.py"
       - "scripts/mkdocs_hooks.py"
@@ -24,18 +26,19 @@ concurrency:
 
 jobs:
   build:
-    if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python -m pip install '.[docs]' playwright
+      - run: python -m pip install '.[docs]' playwright pytest
       - run: python -m playwright install --with-deps chromium
+      - run: python -m pytest -q tests/test_website_publication.py
       - run: python website/build.py
       - run: python scripts/check_website.py
-      - uses: actions/upload-pages-artifact@v4
+      - if: github.server_url == 'https://github.com'
+        uses: actions/upload-pages-artifact@v4
         with:
           path: build/website
 

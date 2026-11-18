@@ -134,5 +134,6 @@ tests/reports/
 # version control so machine-specific compose files and their secrets (e.g. a
 # telegram-bot-api .env with API_ID/API_HASH) can never be committed.
 deploy/
+/review/
 ui_ws_sent.png
 /venv
