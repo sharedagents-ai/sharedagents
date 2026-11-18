@@ -47,6 +47,19 @@ jobs:
         env:
           PYTHONDONTWRITEBYTECODE: "1"
 
+  ontology:
+    name: ontology (SharedData, py3.12)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e '.[dev,ontology]'
+      - run: python -m pytest -q tests/test_research_ontology.py
+        env:
+          SHAREDAGENTS_TEST_SDK_PYTHON: python
+
   lint:
     name: ruff (lint + format)
     runs-on: ubuntu-latest

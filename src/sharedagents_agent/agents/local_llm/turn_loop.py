@@ -252,6 +252,7 @@ class TurnLoopMixin:
         # round has not yet incremented it — ``round_idx + 1``
         # double-counted the cap-hit path (a 2-round cap reported 3).
         rounds_completed = 0
+        research_publication_nudges = 0
 
         # EVERY round-advancing exit must refresh the
         # final-round bookkeeping — not only the RoundComplete path. Loop
@@ -492,7 +493,7 @@ class TurnLoopMixin:
             # UserPromptSubmit so a plugin can rewrite slash commands
             # / argument-expanded skill invocations before the prompt
             # is built into the message list. Most useful for
-            # plugins that ship custom slash commands (e.g. ``/research-wiki``
+            # plugins that ship custom slash commands (e.g. ``/research``
             # → "run the multi-loop research skill with topic X").
             # Hook ``decision: block`` + ``reason: <expanded prompt>``
             # rewrites ``user_text`` wholesale; ``additionalContext``
@@ -2312,10 +2313,14 @@ class TurnLoopMixin:
                                     # Hash the content, never store it (the row
                                     # is turn-cumulative).
                                     _ev_c = ev.content or ""
+                                    _matching_calls = [c for c in norm_calls if c.get("id") == ev.call_id]
+                                    _executed = _matching_calls[0] if len(_matching_calls) == 1 else {}
                                     engine_tool_results.append(
                                         {
                                             "id": ev.call_id,
                                             "ok": ev.ok,
+                                            "name": _executed.get("name"),
+                                            "action": (_executed.get("arguments") or {}).get("action"),
                                             "content_size": len(_ev_c),
                                             "hash": hashlib.sha1(_ev_c.encode("utf-8", "replace")).hexdigest(),
                                             "bg_running": ("running: true" in _ev_c.lower()),
@@ -3723,6 +3728,37 @@ class TurnLoopMixin:
 
                     # --- natural completion -----------------------------
                     if had_done:
+                        from sharedagents_research.native_tools import publication_required
+
+                        _research_profile = (
+                            getattr(self.cfg, "_agent_profile_name", "")
+                            or getattr(self.cfg, "agent_profile", "")
+                            or getattr(self.cfg, "name", "")
+                        )
+                        if publication_required(_research_profile, engine_tool_calls, engine_tool_results):
+                            if research_publication_nudges < 2 and not manual_budget_exhausted:
+                                research_publication_nudges += 1
+                                messages.append(
+                                    {
+                                        "role": "user",
+                                        "content": (
+                                            "Research has no successful ontology publication for this turn. "
+                                            "Use ontology_update to begin, extract each captured source, and finish "
+                                            "with your cited answer and limitations. If storage is unavailable, "
+                                            "report the exact blocker; do not claim the ontology was updated."
+                                        ),
+                                    }
+                                )
+                                _round_advanced()
+                                round_idx += 1
+                                continue
+                            terminal_state = "error"
+                            yield TurnError(
+                                message="Research ontology publication incomplete; evidence was not reported as published.",
+                                classification="ontology_publication",
+                            )
+                            _round_advanced()
+                            break
                         # Deterministic delegation guard: the model ended the
                         # turn with a final answer. If this was a clear single-
                         # phase specialist task AND the model made NO delegation
@@ -4327,6 +4363,23 @@ class TurnLoopMixin:
                 }
             )
 
+        # Every successful exit, including capped/budget wrap-ups, must satisfy
+        # the same research publication contract. Cancellation stays unchanged.
+        from sharedagents_research.native_tools import publication_required
+
+        _research_profile = (
+            getattr(self.cfg, "_agent_profile_name", "")
+            or getattr(self.cfg, "agent_profile", "")
+            or getattr(self.cfg, "name", "")
+        )
+        if terminal_state == "ok" and publication_required(_research_profile, engine_tool_calls, engine_tool_results):
+            terminal_state = "error"
+            request.extra["_engine_audit"]["state"] = "error"
+            yield TurnError(
+                message="Research ended without a successful ontology publication.",
+                classification="ontology_publication",
+            )
+
         # Compute cumulative turn-level metrics from all rounds — the
         # ``last_metrics`` dict only carries the LAST round's numbers,
         # but multi-round turns need aggregated totals (completion,
@@ -4923,7 +4976,7 @@ class TurnLoopMixin:
         answers a "write a spec / run the tests / deploy X" task inline, but it
         has no Write tool, so the artifact is lost. The guard then forces the
         delegation so every clear specialist task reaches its specialist (which
-        owns the right tools + SDLC/research-wiki process).
+        owns the right tools + SDLC/research ontology process).
 
         Regex intent (high precision, ``subagent_policy.specialist_intent``)
         first, embedding semantic router (recall, margin-protected) as fallback.

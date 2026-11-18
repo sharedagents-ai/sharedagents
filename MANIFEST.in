@@ -6,7 +6,6 @@ prune docs
 prune website
 prune examples
 prune hooks
-prune wiki
 prune bench
 prune tools
 prune scripts

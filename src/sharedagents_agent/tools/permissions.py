@@ -503,12 +503,12 @@ def write_scope_check(
         # Deny-list takes PRECEDENCE over the allow-list: a target inside any
         # deny-root is refused even when it also falls inside an allowed root —
         # this is how an implementer scoped to the whole repo (".") is still kept
-        # out of the governance books (plan/, requirements/, spec/, wiki/) it must
+        # out of the governance books (plan/, requirements/, spec/) it must
         # not clobber.
         #
         # Deny resolves against the SAME rel_bases as the allow-list — i.e. the
         # workspace/repo ROOT. The deny-list protects the top-level governance
-        # books (<repo>/plan|requirements|spec|wiki); it deliberately does NOT
+        # books (<repo>/plan|requirements|spec); it deliberately does NOT
         # reach into nested subdirectories, so a nested source dir that merely
         # shares a name (e.g. a pip-style ``vendor/lib/requirements/base.txt``) is
         # NOT falsely refused (independent-review false-deny finding). A book
@@ -548,7 +548,7 @@ def write_scope_check(
                 if _name in target_real.split(os.sep)[:-1]:
                     return (True, "")
                 continue
-            # ``~/wiki/`` is home-scoped. Expand before the absolute check so
+            # ``~/research-reports/`` is home-scoped. Expand before the absolute check so
             # it is not joined onto the workspace as a literal ``~`` folder.
             root_exp = os.path.expanduser(str(root))
             if os.path.isabs(root_exp):
